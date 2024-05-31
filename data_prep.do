@@ -1,6 +1,6 @@
 clear all
 
-local user Jorge
+local user Cec
 
 if "`user'" == "andres"{
 	cd 				"/Users/andres/Dropbox/jardines_elpi"
@@ -149,17 +149,16 @@ use "$db/elpi_original/Hogar_2010", clear
 	gen m_educ = educ if inlist(a16, 1, 3) | (a16 == 5 & a18 == 2) //Madre/madrastra
 	gen f_educ = educ if inlist(a16, 2, 4) | (a16 == 5 & a18 == 1) //Padre/padrastro
 	
-	*Generate Mother and Father at home. No considera madrastra-padrastro.
+	*Generate Mother and Father at home (and both). No considera madrastra-padrastro.
 	gen f_home = inlist(a16, 2, 4)	//1 if father is at home
 	gen m_home = inlist(a16, 1, 3)	//1 if mother is at home
+	
+	*Generate Mother is the main carer dummy
+	gen m_maincarer = (orden == 1 & inlist(a16, 1, 3))
 	
 	*Generate mother age
 	gen m_age = a19 if inlist(a16, 1, 3)
 	replace m_age = . if m_age == 999
-	
-	*Generate Civil Status -  casado o conviviente
-	gen married = inlist(a16,1,3) & inlist(a22,1,2) //Madre
-	replace married = 1 if inlist(a16,2,4) & inlist(a22,1,2) //Padre.
 	
 	*Child's gender
 	gen gender = a18 if a16 == 13
@@ -171,16 +170,21 @@ use "$db/elpi_original/Hogar_2010", clear
 	
 collapse (count) n_integrantes = orden (min) *_sch *_educ m_age gender (max) *_home married dum_siblings dum_young_siblings dum_sibling_part (mean) d11m, by(folio fexp_hog)
 
-ren fexp_hog FE_hog
-ren d11m  monthly_Y
+	*Generate dummy that both parents live with children (no matter the civil status)
+	gen married = (f_home == 1 & m_home == 1)
+
+	ren fexp_hog FE_hog
+	ren d11m  monthly_Y
 
 label var n_integrantes "Number of people in the home"
 label var m_sch "Mother's years of schooling"
 label var m_educ "Mother's educational level"
 label var f_sch "Father's years of schooling'"
-label var f_educ "Fathar's educational level"
+label var f_educ "Father's educational level"
 label var f_home "1 if Father at Home"
 label var m_home "1 if Mother at Home"
+label var married "1 if both parents live with child"
+label var m_maincarer "1 if Mother is the main carer"
 label var m_age "Mother's Age"
 label var gender "Gender of child (1=male)"
 label var dum_siblings "1 if child has sibling(s)"
@@ -320,7 +324,6 @@ use "$db/elpi_original/Hogar_2012", clear
 	gen m_sch = ESC if inlist(i2, 1, 3) | (i2 == 5 & i4 == 2)	//Madre o madrastra
 	gen f_sch = ESC if inlist(i2, 2, 4) | (i2 == 5 & i4 == 1)	//Padre o padrastro
 	
-	
 	* Generate "nivel educacional"
 	gen educ = .
 	replace educ = 1 if j2n <= 9 // less than hs
@@ -339,17 +342,13 @@ use "$db/elpi_original/Hogar_2012", clear
 	*Generate Mother and Father at home. No considera madrastra-padrastro.
 	gen f_home = inlist(i2, 2, 4)	//1 if father is at home
 	gen m_home = inlist(i2, 1, 3)	//1 if mother is at home
+	
+	*Generate Mother is the main carer dummy
+	gen m_maincarer = (orden == 1 & inlist(a16, 1, 3))
 
 	*Generate mother age
 	gen m_age = i1 if inlist(i2, 1, 3)
 	replace m_age = . if m_age >= 200	
-	
-**# Esta pregunta está rara. Nos interesa que ambos padres vivan en el hogar? o qué nos interesa?
-	*Generate Civil Status -  casado o conviviente
-	gen married = inlist(i2,1,3) & inlist(i7,1,2) //Madre
-	replace married = 1 if inlist(i2,2,4) & inlist(i7,1,2) //Padre.
-	
-	*married_aux = ((a16 == 1 | a16 == 3) & (a22 == 1 | a22 == 2)) 
 	
 	*Child's gender
 	gen gender = i4 if i2 == 13
@@ -361,7 +360,11 @@ use "$db/elpi_original/Hogar_2012", clear
 
 collapse (count) n_integrantes = orden (min) *_sch *_educ m_age gender (max) *_home married dum_siblings dum_young_siblings dum_sibling_part (mean) l11_monto, by(folio fexp_hog0 fexp_hogP)
 
-ren (fexp_hog0 fexp_hogP l11_monto) (FE_hog FE_hog_P monthly_Y)
+	*Generate dummy that both parents live with children (no matter the civil status)
+	gen married = (f_home == 1 & m_home == 1)
+	
+	ren (fexp_hog0 fexp_hogP) (FE_hog FE_hog_P)
+	ren l11_monto monthly_Y
 
 label var n_integrantes "Number of people in the home"
 label var m_sch "Mother's years of schooling"
@@ -370,6 +373,8 @@ label var f_sch "Father's years of schooling'"
 label var f_educ "Fathar's educational level"
 label var f_home "1 if Father at Home"
 label var m_home "1 if Mother at Home"
+label var married "1 if both parents live with child"
+label var m_maincarer "1 if Mother is the main carer"
 label var m_age "Mother's Age"
 label var gender "Gender of child (1=male)"
 label var dum_siblings "1 if child has sibling(s)"
