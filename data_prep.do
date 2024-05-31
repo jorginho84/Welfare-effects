@@ -37,6 +37,15 @@ else if "`user'" == "Jorge"{
           
 }
 
+if "`user'" == "Cec"{
+	global des		"C:\Users\Cecilia\Mi unidad\Uandes\Jardines_elpi"
+	cd "$des"
+	global db 		"$des/Data"
+// 	global results 	"$des/results"
+	global codes 	"C:\Users\Cecilia\Documents\GitHub\Welfare-effects"
+// 	global code_dir	"$des"
+}
+
 
 /*
 
@@ -88,15 +97,12 @@ merge m:1 folio using "$db/Datos Comunales/Base_Cod_Comuna_ELPI2010"
 *-------------------------------------------*
 use "$db/elpi_original/Evaluaciones_2010", clear
 sort folio
-keep folio edad_meses eedp_pt batelle_pt_total tepsi_pt_t tvip_pt asq_pb_6m /*
-	*/ asq_pb_12m asq_pb_18m cbcl1_pt_t wais_pt_num wais_pt_vo bfi_pb_ext  /*
-	*/ bfi_pb_ama bfi_pb_res bfi_pb_neu bfi_pb_ape peso_nino_selec talla_nino_selec /*
-	*/ fexp_test
-ren (eedp_pt batelle_pt_total tepsi_pt_t tvip_pt asq_pb_6m asq_pb_12m asq_pb_18m /*
-	*/ cbcl1_pt_t wais_pt_num wais_pt_vo bfi_pb_ext bfi_pb_ama bfi_pb_res bfi_pb_neu /*
-	*/ bfi_pb_ape peso_nino_selec talla_nino_selec fexp_test) (EEDP_t BATTELLE_t TEPSI_t TVIP_t /* 
-	*/ ASQ_bruto_6 ASQ_bruto_12 ASQ_bruto_18 CBCL1_t WAIS_t_num WAIS_t_vo BFI_EXT_bruto /*
-	*/ BFI_AMA_bruto BFI_RES_bruto BFI_NEU_bruto BFI_APE_bruto PESO TALLA FE_test)
+keep folio edad_meses eedp_pt batelle_pt_total tepsi_pt_t tvip_pt asq_pb_6m  asq_pb_12m asq_pb_18m cbcl1_pt_t wais_pt_num wais_pt_vo bfi_pb_ext bfi_pb_ama bfi_pb_res bfi_pb_neu bfi_pb_ape peso_nino_selec talla_nino_selec fexp_test
+
+ren (eedp_pt batelle_pt_total tepsi_pt_t tvip_pt asq_pb_6m asq_pb_12m asq_pb_18m cbcl1_pt_t wais_pt_num wais_pt_vo bfi_pb_ext bfi_pb_ama bfi_pb_res bfi_pb_neu  bfi_pb_ape) /*
+*/ (EEDP_t BATTELLE_t TEPSI_t TVIP_t ASQ_bruto_6 ASQ_bruto_12 ASQ_bruto_18 CBCL1_t WAIS_t_num WAIS_t_vo BFI_EXT_bruto BFI_AMA_bruto BFI_RES_bruto BFI_NEU_bruto BFI_APE_bruto)
+ren (peso_nino_selec talla_nino_selec fexp_test) (PESO TALLA FE_test)
+
 merge 1:1 folio using `db1.dta'
 tab _merge
 rename _merge merge_evaluaciones
@@ -124,6 +130,10 @@ use "$db/elpi_original/Hogar_2010", clear
 	replace ESC = . if b2n == 88 | b2n == 99
 	replace ESC = . if b2c == 19 | b2c == 88 | b2c == 99
 	
+	* ESC madre (o madrastra) y padre (o padrastro)
+	gen m_sch = ESC if inlist(a16, 1, 3) | (a16 == 5 & a18 == 2) //Madre o madrastra
+	gen f_sch = ESC if inlist(a16, 2, 4) | (a16 == 5 & a18 == 1) //Padre o padrastro
+
 	* Generate "nivel educacional"
 	gen educ = .
 	replace educ = 1 if b2n <= 7 //"less than hs"
@@ -135,76 +145,48 @@ use "$db/elpi_original/Hogar_2010", clear
 	label define educ 1 "Less than highschool" 2 "Highschool" 3 "Less than college" 4 "College"
 	label val educ educ
 	
-	* Generate "dum_sibling"
-	gen aux_sib = 0
-	replace aux_sib = 1 if a16 == 6
-	by folio, sort: egen tot_sib = sum(aux_sib)
-	gen dum_siblings = 0
-	by folio, sort: replace dum_siblings = 1 if tot_sib > 0
-	label var dum_siblings "1 si tiene herman@s 0 si no"
+	* Educ madre y padre
+	gen m_educ = educ if inlist(a16, 1, 3) | (a16 == 5 & a18 == 2) //Madre/madrastra
+	gen f_educ = educ if inlist(a16, 2, 4) | (a16 == 5 & a18 == 1) //Padre/padrastro
 	
-	* Generate "dum_young_siblings"
-	gen aux_sib2 = (a16==6 & a19<=4)
-	bys folio: egen tot_young_sib = sum(aux_sib2)
-	gen dum_young_siblings = (tot_young_sib >0)
-	label var dum_young_siblings "1 si tiene hermano/a de 4 anios o menos"
+	*Generate Mother and Father at home. No considera madrastra-padrastro.
+	gen f_home = inlist(a16, 2, 4)	//1 if father is at home
+	gen m_home = inlist(a16, 1, 3)	//1 if mother is at home
 	
-	* Generate "dum_sibling_part" Sibling participation in center
-	gen dum_sibling_part= (dum_young_siblings==1 & b1==1 & b2n<=3) //3 is pre-k
-	label var dum_sibling_part "1 si hermano/a va a centro"
+	*Generate mother age
+	gen m_age = a19 if inlist(a16, 1, 3)
+	replace m_age = . if m_age == 999
 	
-	* Generate "mother_sch"
-	gen  m_sch_aux=ESC if a16 == 1 | a16 == 3	// is . if ESC==.
-	by folio: egen m_sch=min(m_sch_aux) 		// is . if there are no mothers or ESC==.
-	label var m_sch "Escolaridad de la madre (años)"
+	*Generate Civil Status -  casado o conviviente
+	gen married = inlist(a16,1,3) & inlist(a22,1,2) //Madre
+	replace married = 1 if inlist(a16,2,4) & inlist(a22,1,2) //Padre.
 	
-	*Generate "mother educ"
-	gen m_educ_aux = educ if a16 == 1 | a16 == 3
-	by folio: egen m_educ = min(m_educ_aux) 	// is . if there are no mothers or ESC==.
-	label var m_educ "Educacion de la madre (nivel)"
+	*Child's gender
+	gen gender = a18 if a16 == 13
 	
-	* Generate "father_sch"
-	gen  f_sch_aux = ESC if a16 == 2 | a16 == 4 | a16 == 5 // is . if ESC==.
-	by folio: egen f_sch=min(f_sch_aux) 		// is . if there are no mothers or ESC==.
-	label var f_sch "Escolaridad del padre (años)"
+	* Variables aux de presencia de hermano/as y participación en cc de hermano.
+	gen dum_siblings = (a16 == 6) // 1 if child has sibling(s)
+	gen dum_young_siblings = (a16 == 6 & a19 <= 4) // 1 if child has sibling(s) younger than 4 years old.
+	gen dum_sibling_part = (dum_young_siblings == 1 & b1==1 & b2n<=5) // 1 if child has siblings younger than 4 and they go to cc (pre-k or lower).
 	
-	*Generate "father educ"
-	gen f_educ_aux = educ if a16 == 2 | a16 == 4 | a16 == 5 
-	by folio: egen f_educ = min(f_educ_aux) 	// is . if there are no mothers or ESC==.
-	label var f_educ "Educacion del padre (nivel)"
+collapse (count) n_integrantes = orden (min) *_sch *_educ m_age gender (max) *_home married dum_siblings dum_young_siblings dum_sibling_part (mean) d11m, by(folio fexp_hog)
 
-	*Generate Father at home
-	gen f_home_aux=(a16 == 2 | a16 == 4) 		//1 or 0 no other values
-	by folio: egen f_home=max(f_home_aux)		//1 if there is a father at home
-	label var f_home "Father at Home"
-	
-	*Generate mother's age
-	gen m_age_aux=a19 if a16 == 1 | a16 == 3
-	replace m_age_aux=. if m_age_aux==99
-	by folio: egen m_age=min(m_age_aux)
-	label var m_age "Mother Age"
-	
-	*Generate Civil Status
-	gen married_aux = ((a16 == 1 | a16 == 3) & (a22 == 1 | a22 == 2)) // married or co-habiting
-	replace married_aux = 1 if (a16 == 2 | a16 == 4) & (a22 == 1 | a22 == 2)
-	bys folio: egen married = max(married_aux)
-	label var married "Married/cohabiting"
-	
-	*Generate numero integrantes del hogar
-	bys folio: egen n_integrantes = count(folio)
-	label var n_integrantes "Number of people in the home"
-	
-	*Child gender
-	gen gender_aux = a18 if a16 == 3
-	by folio: egen gender = min(gender_aux)
-	label var gender "Gender of child (1 = male)"
-	
-keep folio dum_siblings tot_sib dum_young_siblings dum_sibling_part m_sch m_educ f_sch f_educ fexp_hog d11m f_home m_age married n_integrantes gender
 ren fexp_hog FE_hog
 ren d11m  monthly_Y
-by folio, sort: gen id = _n
-keep if id == 1
-drop id
+
+label var n_integrantes "Number of people in the home"
+label var m_sch "Mother's years of schooling"
+label var m_educ "Mother's educational level"
+label var f_sch "Father's years of schooling'"
+label var f_educ "Fathar's educational level"
+label var f_home "1 if Father at Home"
+label var m_home "1 if Mother at Home"
+label var m_age "Mother's Age"
+label var gender "Gender of child (1=male)"
+label var dum_siblings "1 if child has sibling(s)"
+label var dum_young_siblings "1 if child has sibling(s) 4 years old or younger"
+label var dum_sibling_part "1 if child's young sibling(s) goes to cc (P-K or lower)"
+
 merge 1:1 folio using `scores.dta'
 tab _merge
 rename _merge merge_hogar
@@ -301,15 +283,11 @@ merge m:1 folio using "$db/Datos Comunales/Base_Cod_Comuna_ELPI2012"
 *-------------------------------------------*
 use "$db/elpi_original/Evaluaciones_2012", clear
 sort folio
-keep folio edad_meses batelle_pt_total tvip_pt asq_pb_6m /*
-	*/ asq_pb_12m asq_pb_18m cbcl1_pt_t cbcl2_pt_t wais_pt_num wais_pt_vo bfi_pb_ext  /*
-	*/ bfi_pb_ama bfi_pb_res bfi_pb_neu bfi_pb_ape peso_nino_selec talla_nino_selec /*
-	*/ fexp_test0 fexp_testP 
-ren (batelle_pt_total tvip_pt asq_pb_6m asq_pb_12m asq_pb_18m /*
-	*/ cbcl1_pt_t cbcl2_pt_t wais_pt_num wais_pt_vo bfi_pb_ext bfi_pb_ama bfi_pb_res bfi_pb_neu /*
-	*/ bfi_pb_ape peso_nino_selec talla_nino_selec fexp_test0 fexp_testP) (BATTELLE_t TVIP_t /* 
-	*/ ASQ_bruto_6 ASQ_bruto_12 ASQ_bruto_18 CBCL1_t CBCL2_t WAIS_t_num WAIS_t_vo BFI_EXT_bruto /*
-	*/ BFI_AMA_bruto BFI_RES_bruto BFI_NEU_bruto BFI_APE_bruto PESO TALLA FE_test FE_test_P)
+keep folio edad_meses batelle_pt_total tvip_pt asq_pb_6m  asq_pb_12m asq_pb_18m cbcl1_pt_t cbcl2_pt_t wais_pt_num wais_pt_vo bfi_pb_ext  bfi_pb_ama bfi_pb_res bfi_pb_neu bfi_pb_ape peso_nino_selec talla_nino_selec fexp_test0 fexp_testP 
+
+ren (batelle_pt_total tvip_pt asq_pb_6m asq_pb_12m asq_pb_18m cbcl1_pt_t cbcl2_pt_t wais_pt_num wais_pt_vo bfi_pb_ext bfi_pb_ama bfi_pb_res bfi_pb_neu bfi_pb_ape) (BATTELLE_t TVIP_t ASQ_bruto_6 ASQ_bruto_12 ASQ_bruto_18 CBCL1_t CBCL2_t WAIS_t_num WAIS_t_vo BFI_EXT_bruto BFI_AMA_bruto BFI_RES_bruto BFI_NEU_bruto BFI_APE_bruto)
+rename (peso_nino_selec talla_nino_selec fexp_test0 fexp_testP) (PESO TALLA FE_test FE_test_P)
+
 merge 1:1 folio using `db1b.dta'
 tab _merge
 rename _merge merge_evaluaciones
@@ -338,6 +316,10 @@ use "$db/elpi_original/Hogar_2012", clear
 	replace ESC = . if j2n == 88 | j2n == 99
 	replace ESC = . if j2c == 19 | j2c == 88 | j2c == 99
 	
+	* ESC madre (o madrastra) y padre (o padrastro)
+	gen m_sch = ESC if inlist(i2, 1, 3) | (i2 == 5 & i4 == 2)	//Madre o madrastra
+	gen f_sch = ESC if inlist(i2, 2, 4) | (i2 == 5 & i4 == 1)	//Padre o padrastro
+	
 	
 	* Generate "nivel educacional"
 	gen educ = .
@@ -350,75 +332,50 @@ use "$db/elpi_original/Hogar_2012", clear
 	label define educ 1 "Less than highschool" 2 "Highschool" 3 "Less than college" 4 "College"
 	label val educ educ
 	
-	* Generate "dum_sibling"
-	gen aux_sib = 0
-	replace aux_sib = 1 if i2 == 6
-	by folio, sort: egen tot_sib = sum(aux_sib)
-	gen dum_siblings = 0
-	by folio, sort: replace dum_siblings = 1 if tot_sib > 0
-	label var dum_siblings "1 si tiene herman@s 0 si no"
+	* Educ madre y padre
+	gen m_educ = educ if inlist(i2, 1, 3) | (i2 == 5 & i4 == 2)	//Madre o madrastra
+	gen f_educ = educ if inlist(i2, 2, 4) | (i2 == 5 & i4 == 1) //Padre o padrastro
 
-	*Generate "dum_young_siblings"
-	gen aux_sib2 = (i2 == 6 & i1 <= 4)
-	bys folio: egen tot_young_sib = sum(aux_sib2)
-	gen dum_young_siblings = (tot_young_sib > 0)
-	label var dum_young_siblings "1 si tiene hermano/a de 4 anios o menos"
-	
-	*Generate "dum_sibling_part" Sibling participation in center
-	gen dum_sibling_part_aux= (dum_young_siblings==1 & j1==1 & j2n<=5) //5 corresponde a prekinder
-	bys folio: egen dum_sibling_part = max(dum_sibling_part_aux)
-	label var dum_sibling_part "1 si hermano/a va a centro"
-	
-	* Generate "mother_sch"
-	gen  m_sch_aux=ESC if i2 == 1 | i2 == 3		// is . if ESC==.
-	by folio: egen m_sch=min(m_sch_aux) 		// is . if there are no mothers or ESC==.
-	label var m_sch "Escolaridad de la madre (años)"
-	
-	*Generate "mother educ"
-	gen m_educ_aux = educ if i2 == 1 | i2 == 3	
-	by folio: egen m_educ = min(m_educ_aux) 	// is . if there are no mothers or ESC==.
-	label var m_educ "Educacion de la madre (nivel)"
-	
-	* Generate "father_sch"
-	gen  f_sch_aux=ESC if i2 == 2 | i2 == 4	| i2 == 5	// is . if ESC==.
-	by folio: egen f_sch=min(f_sch_aux) 		// is . if there are no mothers or ESC==.
-	label var f_sch "Escolaridad del padre (años)"
-	
-	*Generate "father educ"
-	gen f_educ_aux = educ if i2 == 2 | i2 == 4	| i2 == 5
-	by folio: egen f_educ = min(f_educ_aux) 	
-	label var f_educ "Educacion del padre (nivel)"
+	*Generate Mother and Father at home. No considera madrastra-padrastro.
+	gen f_home = inlist(i2, 2, 4)	//1 if father is at home
+	gen m_home = inlist(i2, 1, 3)	//1 if mother is at home
 
-	*Generate Father at home
-	gen f_home_aux = (i2 == 2 | i2 == 4) 				//1 or 0 no other values
-	by folio: egen f_home = max(f_home_aux)		//1 if there is a father at home
-	label var f_home "Father at Home"
+	*Generate mother age
+	gen m_age = i1 if inlist(i2, 1, 3)
+	replace m_age = . if m_age >= 200	
+	
+**# Esta pregunta está rara. Nos interesa que ambos padres vivan en el hogar? o qué nos interesa?
+	*Generate Civil Status -  casado o conviviente
+	gen married = inlist(i2,1,3) & inlist(i7,1,2) //Madre
+	replace married = 1 if inlist(i2,2,4) & inlist(i7,1,2) //Padre.
+	
+	*married_aux = ((a16 == 1 | a16 == 3) & (a22 == 1 | a22 == 2)) 
+	
+	*Child's gender
+	gen gender = i4 if i2 == 13
+	
+	* Variables aux de presencia de hermano/as y participación en cc de hermano.
+	gen dum_siblings = (i2 == 6) // 1 if child has siblings
+	gen dum_young_siblings = (i2 == 6 & i1 <= 4) // 1 if child has sibling younger than 4 years old.
+	gen dum_sibling_part = (dum_young_siblings == 1 & j1==1 & j2n<=5) // 1 if child has siblings younger than 4 and they go to cc (pre-k or lower).
 
-	*generate mother age
-	gen m_age_aux = i1 if i2 == 1 | i2 == 3	
-	replace m_age_aux = . if m_age_aux == 999
-	by folio: egen m_age = min(m_age_aux)
-	label var m_age "Mother Age"
-	
-	*Generate Civil Status
-	gen married_aux = ((i2 == 1 | i2 == 3) & (i7 == 1 | i7 == 2)) // casado o conviviente
-	replace married_aux = 1 if (i2 == 2 | i2 == 4) & (i7 == 1 | i7 == 2)
-	bys folio: egen married = max(married_aux)
-	
-	*Generate numero integrantes del hogar
-	bys folio: egen n_integrantes = count(folio)
-	
-	*Gender of childcare
-	gen gender_aux = i4 if i2 == 13
-	by folio: egen gender = min(gender_aux)
-	label var gender "Gender of child (1=male)"
-	
-	
-keep folio dum_siblings tot_sib dum_young_siblings dum_sibling_part m_sch m_educ f_sch f_educ fexp_hog0 fexp_hogP l11_monto f_home m_age married n_integrantes gender
+collapse (count) n_integrantes = orden (min) *_sch *_educ m_age gender (max) *_home married dum_siblings dum_young_siblings dum_sibling_part (mean) l11_monto, by(folio fexp_hog0 fexp_hogP)
+
 ren (fexp_hog0 fexp_hogP l11_monto) (FE_hog FE_hog_P monthly_Y)
-by folio, sort: gen id = _n
-keep if id == 1
-drop id
+
+label var n_integrantes "Number of people in the home"
+label var m_sch "Mother's years of schooling"
+label var m_educ "Mother's educational level"
+label var f_sch "Father's years of schooling'"
+label var f_educ "Fathar's educational level"
+label var f_home "1 if Father at Home"
+label var m_home "1 if Mother at Home"
+label var m_age "Mother's Age"
+label var gender "Gender of child (1=male)"
+label var dum_siblings "1 if child has sibling(s)"
+label var dum_young_siblings "1 if child has sibling(s) 4 years old or younger"
+label var dum_sibling_part "1 if child's young sibling(s) goes to cc (P-K or lower)"
+
 merge 1:1 folio using `scoresb.dta'
 rename _merge merge_hogar
 tempfile householdsb
