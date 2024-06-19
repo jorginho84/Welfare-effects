@@ -58,7 +58,7 @@ Set local run_geo = 1 if want to run geodata.do
 local run_geo = 0
 
 ********************************************************************************
-************************* * *CLEAN ELPI 2010* * ********************************
+**# ********************* * *CLEAN ELPI 2010* * ********************************
 ********************************************************************************
 
 *-------------------------------------------*
@@ -149,7 +149,7 @@ use "$db/elpi_original/Hogar_2010", clear
 	gen m_educ = educ if inlist(a16, 1, 3) | (a16 == 5 & a18 == 2) //Madre/madrastra
 	gen f_educ = educ if inlist(a16, 2, 4) | (a16 == 5 & a18 == 1) //Padre/padrastro
 	
-	*Generate Mother and Father at home (and both). No considera madrastra-padrastro.
+	*Generate Mother and Father at home. No considera madrastra-padrastro.
 	gen f_home = inlist(a16, 2, 4)	//1 if father is at home
 	gen m_home = inlist(a16, 1, 3)	//1 if mother is at home
 	
@@ -168,7 +168,7 @@ use "$db/elpi_original/Hogar_2010", clear
 	gen dum_young_siblings = (a16 == 6 & a19 <= 4) // 1 if child has sibling(s) younger than 4 years old.
 	gen dum_sibling_part = (dum_young_siblings == 1 & b1==1 & b2n<=5) // 1 if child has siblings younger than 4 and they go to cc (pre-k or lower).
 	
-collapse (count) n_integrantes = orden (min) *_sch *_educ m_age gender (max) *_home married dum_siblings dum_young_siblings dum_sibling_part (mean) d11m, by(folio fexp_hog)
+collapse (count) n_integrantes = orden (min) *_sch *_educ m_age gender (max) *_home m_maincarer dum_siblings dum_young_siblings dum_sibling_part (mean) d11m, by(folio fexp_hog)
 
 	*Generate dummy that both parents live with children (no matter the civil status)
 	gen married = (f_home == 1 & m_home == 1)
@@ -249,7 +249,7 @@ save `Data2010.dta', replace
 
 	
 ********************************************************************************
-************************* * *CLEAN ELPI 2012* * ********************************
+**# ********************* * *CLEAN ELPI 2012* * ********************************
 ********************************************************************************
 
 *-------------------------------------------*
@@ -344,7 +344,7 @@ use "$db/elpi_original/Hogar_2012", clear
 	gen m_home = inlist(i2, 1, 3)	//1 if mother is at home
 	
 	*Generate Mother is the main carer dummy
-	gen m_maincarer = (orden == 1 & inlist(a16, 1, 3))
+	gen m_maincarer = (orden == 1 & inlist(i2, 1, 3))
 
 	*Generate mother age
 	gen m_age = i1 if inlist(i2, 1, 3)
@@ -358,7 +358,7 @@ use "$db/elpi_original/Hogar_2012", clear
 	gen dum_young_siblings = (i2 == 6 & i1 <= 4) // 1 if child has sibling younger than 4 years old.
 	gen dum_sibling_part = (dum_young_siblings == 1 & j1==1 & j2n<=5) // 1 if child has siblings younger than 4 and they go to cc (pre-k or lower).
 
-collapse (count) n_integrantes = orden (min) *_sch *_educ m_age gender (max) *_home married dum_siblings dum_young_siblings dum_sibling_part (mean) l11_monto, by(folio fexp_hog0 fexp_hogP)
+collapse (count) n_integrantes = orden (min) *_sch *_educ m_age gender (max) *_home m_maincarer dum_siblings dum_young_siblings dum_sibling_part (mean) l11_monto, by(folio fexp_hog0 fexp_hogP)
 
 	*Generate dummy that both parents live with children (no matter the civil status)
 	gen married = (f_home == 1 & m_home == 1)
@@ -460,10 +460,10 @@ label values merge_elpi elpi_lbl
 tempfile Data2012_2010
 save `Data2012_2010.dta', replace
 
-*save "$db/ELPI_Panel.dta", replace
-
+save "$db/ELPI_Panel.dta", replace
+stp
 ********************************************************************************
-************************* * *CLEAN ELPI 2017* * ********************************
+**# ********************* * *CLEAN ELPI 2017* * ********************************
 ********************************************************************************
 
 *-------------------------------------------*
@@ -512,7 +512,7 @@ use "$db/elpi_original/Entrevistada_2017", clear
 	ren c18 		preg_control	//ojo NS/NR
 	ren c19			q_control		//ojo NS/NR, different from 2010 version
 	ren sn17a 		q_sano			//ojo NS/NR
-	gen dum_sano=(q_sano>0) if q_sano!=.
+	gen dum_sano = (q_sano>0) if q_sano!=.
 	gen birth_weight=c30a*1000+c30b	
 	ren ytotcorh	monthly_Y
 	
