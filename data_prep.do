@@ -119,21 +119,31 @@ tempfile scores
 *------------------------------------*
 use "$db/elpi_original/Hogar_2010", clear
 
-	* Generate "escolaridad"
-	gen ESC = 0 if b2n == 1 | b2n == 2 | b2n == 3 | b2n == 4 | b2n == 7
+recode a19 (999 = .)
 
-	replace ESC = b2c if b2n == 5 | b2n == 6
-	replace ESC = b2c+8 if b2n == 9 | b2n == 11
-	replace ESC = 12 if ESC == 13
-	replace ESC = b2c+6 if b2n == 8 | b2n == 10
-	replace ESC = 12 if ESC == 17
-	replace ESC = b2c+12 if b2n == 12 | b2n == 13
-	replace ESC = b2c+12 if b2n >= 14 & b2n <= 17
-	replace ESC = b2c+17 if b2n == 18
-	replace ESC = 21 if ESC > 21
+	recode b2c (88 99 = .) (19 = 0) (9 = 8) //19 significa ninguno, 8 es el máximo.
+	recode b2n (88 99 = .) (19 = 0) //19 significa ninguno
+	* Generate "escolaridad"
+	gen ESC = 0 if inlist(b2n,0,1,2,3,4,7) //Preschool /Ed diferencial /ninguno.
+	replace ESC = b2c if inlist(b2n,5,6) //Básica /Preparatoria
+	replace ESC = b2c + 8 if inlist(b2n,9,11) //Media cient humanista o técnico
+	replace ESC = b2c + 6 if inlist(b2n,8,10) //Humanidades o tecnica (antiguo)
+	replace ESC = 12 if ESC >= 12 & !missing(ESC) //12 años de escolaridad es lo máximo. 
+	replace ESC = b2c + 12 if inlist(b2n,12,13) //CFT
+	replace ESC = b2c + 12 if inlist(b2n,14,15,16,17) //IP, Uni.
+	replace ESC = b2c + 17 if inlist(b2n,18) //Postgrado
+	replace ESC = 21 if ESC > 21 & !missing(ESC)
+	
+	*Se corrigen los valores missing
+	replace ESC = 0 if missing(b2c) & inlist(b2n,5,6)
+	replace ESC = 8 if missing(b2c) & inlist(b2n,9,11) 
+	replace ESC = 6 if missing(b2c) & inlist(b2n,8,10)
+	replace ESC = 12 if missing(b2c) & inlist(b2n,12,13,14,15,16,17)
+	replace ESC = 17 if missing(b2c) & b2n == 18
 		
-	replace ESC = . if b2n == 88 | b2n == 99
-	replace ESC = . if b2c == 19 | b2c == 88 | b2c == 99
+	replace ESC = . if inlist(b2n,88,99)
+	replace ESC = . if inlist(b2c,88,99)
+	replace ESC = . if ESC > a19 //Hay un caso de niña con 6 años que tiene escolaridad 7.
 	
 	* ESC madre (o madrastra) y padre (o padrastro)
 	gen m_sch = ESC if inlist(a16, 1, 3) | (a16 == 5 & a18 == 2) //Madre o madrastra
@@ -321,21 +331,31 @@ tempfile scoresb
 *--------------------------------------*
 use "$db/elpi_original/Hogar_2012", clear
 
-	* Generate "escolaridad"
-	gen ESC = 0 if j2n == 1 | j2n == 2 | j2n == 3 | j2n == 4 | j2n == 7
+recode i1 (999 = .)
 
-	replace ESC = j2c if j2n == 5 | j2n == 6
-	replace ESC = j2c+8 if j2n == 9 | j2n == 11
-	replace ESC = 12 if ESC == 13
-	replace ESC = j2c+6 if j2n == 8 | j2n == 10
-	replace ESC = 12 if ESC == 17
-	replace ESC = j2c+12 if j2n == 12 | j2n == 13
-	replace ESC = j2c+12 if j2n >= 14 & j2n <= 17
-	replace ESC = j2c+17 if j2n == 18
-	replace ESC = 21 if ESC > 21
+	* Generate "escolaridad"
+	recode j2c (88 99 = .) (19 = 0) (9 = 8) //19 es ninguno, 8 se asume máximo.
+	recode j2n (88 99 = .) (21 = 0) //21 significa ninguno
+	
+	gen ESC = 0 if inlist(j2n,0,1,2,3,4,5,6,9) //Diferencial, ninguno, Preschool 
+	replace ESC = j2c if inlist(j2n,7,8) //Basica o preparatoria
+	replace ESC = j2c + 8 if inlist(j2n,11,13) //Media cient-humanista o técnico
+	replace ESC = j2c + 6 if inlist(j2n,10,12) //Humanidades o tecnica (antiguo)
+	replace ESC = 12 if ESC >= 12 & !missing(ESC) //12 años si terminó el colegio
+	replace ESC = j2c + 12 if inlist(j2n,14,15) //CFT
+	replace ESC = j2c + 12 if inlist(j2n,16,17,18,19) //IP U
+	replace ESC = j2c + 17 if inlist(j2n,20)
+	replace ESC = 21 if ESC > 21 & !missing(ESC) //Se asume como máximo años de escolaridad
+	
+	*Se corrigen los valores missing
+	replace ESC = 0 if missing(j2c) & inlist(j2n,7,8)
+	replace ESC = 8 if missing(j2c) & inlist(j2n,11,13) 
+	replace ESC = 6 if missing(j2c) & inlist(j2n,10,12)
+	replace ESC = 12 if missing(j2c) & inlist(j2n,14,15,16,17,18,19)
+	replace ESC = 17 if missing(j2c) & j2n == 20
 		
-	replace ESC = . if j2n == 88 | j2n == 99
-	replace ESC = . if j2c == 19 | j2c == 88 | j2c == 99
+	replace ESC = . if inlist(j2n,88,99)
+	replace ESC = . if inlist(j2c,19,99,99)
 	
 	* ESC madre (o madrastra) y padre (o padrastro)
 	gen m_sch = ESC if inlist(i2, 1, 3) | (i2 == 5 & i4 == 2)	//Madre o madrastra
@@ -547,12 +567,12 @@ label var dum_sibling_part "1 if child's young sibling(s) goes to cc (P-K or low
 	ren ytotcorh	monthly_Y
 	
 	foreach v of varlist dum_smoke dum_alc dum_drug{
-	    encode `v' (8 = .)
+	    recode `v' (8 = .)
 	}
-	encode preg_control (9 = .)
-	encode q_sano (88 = .)
+	recode preg_control (9 = .)
+	recode q_sano (88 = .)
 	recode q_control (1/2 = 1) (3/4 = 2) (5/7 = 3) (8/99 = 4) 
-	label define q_control 1 "Menos de 3" 2 "Entre 3 y 4" 3 "Entre 5 y 7" 4 "8 o más", modify //Para hacere pregunta equivalente con ELPI 2010
+	label define q_control 1 "Menos de 3" 2 "Entre 3 y 4" 3 "Entre 5 y 7" 4 "8 o más", modify //Para hacer pregunta equivalente con ELPI 2010
 	label val q_control q_control
 *--------------------------------------*
 *----------"Hogares" database----------*
@@ -560,19 +580,32 @@ label var dum_sibling_part "1 if child's young sibling(s) goes to cc (P-K or low
 *Hogares and entrevistada are in same dataset for 2017
 
 	* Generate "escolaridad"
-	gen ESC = 0 if e4 == 1 | e4 == 2 | e4 == 3 | e4 == 4 | e4 == 5 //generates missing for the others
-	replace ESC = e4_curso 		if e4  == 6  | e4 == 7
-	replace ESC = e4_curso+8 	if e4  == 9  | e4 == 10 | e4 == 11 //tecnico o media ??
-	replace ESC = 12 			if ESC == 13 | ESC==14
-	replace ESC = e4_curso+6 	if e4  == 8
-	replace ESC = e4_curso+12 	if e4  == 12 | e4 == 13
-	replace ESC = 15 			if ESC == 16 | ESC==17
-	replace ESC = e4_curso+12 	if e4  == 14 | e4 == 15
-	replace ESC = 18 			if ESC >= 19 & ESC<=22	
-	replace ESC = e4_curso+17 	if e4  == 16 | e4 == 17 //weird...all people doing courses are in 5-10
-	replace ESC = 21 			if ESC > 21 		//lots of changes
-	replace ESC = . 			if e4  == 88
+	recode e4 (88 = .)
+	recode e4_curso (9 10 = .)
+	
+	gen ESC = 0 if inlist(e4,1,2,3,4,5) //No educ, preeschool, ed diferencial.
+	replace ESC = e4_curso 		if inlist(e4,6,7) //Primaria o preparatoria/ basica.
+	replace ESC = e4_curso + 8 	if inlist(e4,9,11) //Media  cient humanista o técnico
+// 	replace ESC = 12 			if ESC == 13 | ESC==14
+	replace ESC = e4_curso+6 	if inlist(e4,8,10) //Humanidades o tecnico comercial.
+	replace ESC = 12 			if ESC > 12 & !missing(ESC)
+	replace ESC = e4_curso+12 	if inlist(e4,12,13) //Técnico prof
+	replace ESC = 15 			if ESC > 15 & !missing(ESC) 
+	replace ESC = e4_curso+12 	if inlist(e4,14,15) //Univ
+	replace ESC = 18 			if ESC >= 19 & !missing(ESC) 
+	replace ESC = e4_curso+17 	if inlist(e4,16,17) // Postgrado. Ojo con e4_curso (5-10)
+	replace ESC = 21 			if ESC > 21 & !missing(ESC)	
+	replace ESC = . 			if missing(e4)
 	//Missings are . in this dataset
+	
+	*Se corrigen los missing
+	replace ESC = 12 if e4 == 12 & missing(ESC)
+	replace ESC = 14 if e4 == 13 & missing(ESC)
+	replace ESC = 12 if e4 == 14 & missing(ESC)
+	replace ESC = 16 if e4 == 15 & missing(ESC)
+	replace ESC = 16 if e4 == 16 & missing(ESC)
+	replace ESC = 21 if e4 == 17 & missing(ESC)
+	
 	
 	* Generate "nivel educacional"
 	rename educ nivel_educ
@@ -705,6 +738,7 @@ use "$db/elpi_original/Evaluaciones_2017", clear
 sort folio
 
 keep folio edad_mesesr battelle_pt_total tvip_pb asq_pb_12m asq_pb_18m cbcl1_pt_inter_t cbcl2_pt_inter_t
+
 ren battelle_pt_total 	BATTELLE_t
 ren tvip_pb				TVIP_t
 ren asq_pb_12m			ASQ_bruto_12
