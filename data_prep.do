@@ -57,6 +57,7 @@ Set local run_geo = 1 if want to run geodata.do
 
 local run_geo = 0
 
+
 ********************************************************************************
 **# ********************* * *CLEAN ELPI 2010* * ********************************
 ********************************************************************************
@@ -85,9 +86,13 @@ merge m:1 folio using "$db/Datos Comunales/Base_Cod_Comuna_ELPI2010"
 	ren g31 		dum_sano		
 	recode dum_sano (9=.) (1=0) (2=1)
 	label var dum_sano "Risk: no health controls"
-	
-	ren g2 			q_control		
+	ren g2 			q_control	
+	recode q_control (9 = .)
 	ren fexp_enc 	FE_enc
+	
+	label define sino 1 "Sí" 0 "No", modify
+	label values preg_control dum_smoke dum_alc dum_sano sino
+	
 	sort folio
 	tempfile db1
 		save `db1.dta', replace
@@ -169,6 +174,8 @@ use "$db/elpi_original/Hogar_2010", clear
 	gen dum_sibling_part = (dum_young_siblings == 1 & b1==1 & b2n<=5) // 1 if child has siblings younger than 4 and they go to cc (pre-k or lower).
 	
 collapse (count) n_integrantes = orden (min) *_sch *_educ m_age gender (max) *_home m_maincarer dum_siblings dum_young_siblings dum_sibling_part (mean) d11m, by(folio fexp_hog)
+	
+	replace dum_sibling_part = . if dum_young_siblings == 0
 
 	*Generate dummy that both parents live with children (no matter the civil status)
 	gen married = (f_home == 1 & m_home == 1)
@@ -203,27 +210,33 @@ tempfile households
 use "$db/elpi_original/Cuidado_infantil_2010", clear
 
 keep folio orden j1 j2 j4 j9 j10 j11mes j11sem j14 j15 j15cod j27 
-ren orden 	tramo 
-ren j1		dum_work		//ojo NS/NR	
-ren j2		weeks_work		//ojo NS/NR	
-ren j4		mean_hours		//ojo NS/NR	
-ren j9		who_childcare	//ojo NS/NR		
-ren j10		dum_center		//ojo NS/NR	
-ren j11mes	time_center
-ren j14		cc_near
-ren j15		type_center		//ojo NS/NR	
-ren j15cod	other_type		//ojo NS/NR	
-ren j27		nut_status		//ojo NS/NR	
 
-recode dum_center (2=0) (9=.) 
-replace time_center = 0 if (time_center == . | time_center == 99)  & dum_center == 0
-replace time_center = time_center + 1 if j11sem >= 3 //(aproximates to a month)
-recode cc_near (2=0) (9=.)
-recode dum_work (2=0) (9=.) (8=.)
+ren (orden j1 j2 j4 j9 j10 j11mes j14 j15 j15cod j27) (tramo dum_work weeks_work mean_hours who_childcare dum_center time_center cc_near type_center other_type nut_status)
+
+* NS/NR is considered a missing value.
+foreach v of varlist dum_work cc_near weeks_work dum_center type_center nut_status cc_near {
+    recode `v' (9 = .)
+}
+recode mean_hours (999 = .)
+recode who_childcare (99 = .)
+recode other_type (99 = .)
+recode time_center (99 = .)
+
+*Recode to have No = 0
+recode dum_work (2 = 0) (8 = .)
+recode cc_near (2 = 0)
+recode dum_center (2 = 0)
+recode cc_near (2 = 0) 
+recode j11sem (99 = .)
+
+replace time_center = 0 if missing(time_center) & dum_center == 0
+replace time_center = time_center + 1 if j11sem >= 3 & !missing(j11sem) //(aproximates to a month)
 drop j11sem
 
-reshape wide dum_work weeks_work mean_hours who_childcare dum_center time_center type_center nut_status /*
-*/ other_type cc_near, i(folio) j(tramo)
+label define sino 1 "Sí" 0 "No", modify //Se genera nueva label porque luego LABB cambia.
+label val dum_work dum_center cc_near sino
+ 
+reshape wide dum_work weeks_work mean_hours who_childcare dum_center time_center type_center nut_status other_type cc_near, i(folio) j(tramo)
 
 	foreach i in 1 2 3 4 5 6 7 8 {		
 		label var dum_work`i' "Trabajó o no en el tramo `i'"  
@@ -259,7 +272,7 @@ use "$db/elpi_original/Entrevistada_2012", clear
 merge m:1 folio using "$db/Datos Comunales/Base_Cod_Comuna_ELPI2012"
 
 	* keep useful variables	
-		keep folio region area a2 b37 b38 b8 b12 b41 fexp_enc0 fexp_encP comuna_cod comuna_lab muestra
+	keep folio region area a2 b37 b38 b8 b12 b41 fexp_enc0 fexp_encP comuna_cod comuna_lab muestra
 	gen dum_mother = (a2==1)
 	
 	ren b37 		preg_control
@@ -274,8 +287,12 @@ merge m:1 folio using "$db/Datos Comunales/Base_Cod_Comuna_ELPI2012"
 	ren b41 		dum_sano
 	recode dum_sano (9=.) (1=0) (2=1)
 	label var dum_sano "Risk: no health controls"
-
 	ren b38 		q_control		//ojo NS/NR, different from 2010 version
+	*q_control takes values from 0 to 80 (2010 está en secciones, se igual a 2010)
+	recode q_control (1/2 = 1) (3/4 = 2) (5/7 = 3) (8/80 = 4) (88 99 = .)
+	label define q_control 1 "Menos de 3" 2 "Entre 3 y 4" 3 "Entre 5 y 7" 4 "8 o más", modify
+	label val q_control q_control
+	
 	ren fexp_enc0 	FE_enc
 	ren fexp_encP 	FE_P
 	sort folio
@@ -359,6 +376,8 @@ use "$db/elpi_original/Hogar_2012", clear
 	gen dum_sibling_part = (dum_young_siblings == 1 & j1==1 & j2n<=5) // 1 if child has siblings younger than 4 and they go to cc (pre-k or lower).
 
 collapse (count) n_integrantes = orden (min) *_sch *_educ m_age gender (max) *_home m_maincarer dum_siblings dum_young_siblings dum_sibling_part (mean) l11_monto, by(folio fexp_hog0 fexp_hogP)
+	
+	replace dum_sibling_part = . if dum_young_siblings == 0
 
 	*Generate dummy that both parents live with children (no matter the civil status)
 	gen married = (f_home == 1 & m_home == 1)
@@ -392,15 +411,21 @@ tempfile householdsb
 use "$db/elpi_original/Cuidado_infantil_2012", clear
 
 keep folio e1 e3 e6 e7 e11_1 e12 tramo e8meses e8semanas 
-ren (e1 e3 e6 e7 e11_1 e12 e8meses) (dum_work care_at_work who_childcare /*
-*/ dum_center cc_near type_center time_center)
+ren (e1 e3 e6 e7 e11_1 e12 e8meses) (dum_work care_at_work who_childcare dum_center cc_near type_center time_center)
 
-recode dum_center (2=1) (3=1) (4=0) 
-replace time_center = 0 if (time_center == . | time_center == 99) & dum_center == 0
-replace time_center = time_center + 1 if e8semanas >= 3
+label define sino 1 "Sí" 0 "No", modify
+
+*Recode to have No = 0 & missing values = .
+recode dum_work (2 = 0) (9 = .)
+recode care_at_work (2 = 0) (8 9 = .)
+recode dum_center (2 = 1) (3 = 1) (4 = 0) 
+recode time_center (99 = .)
+replace time_center = 0 if missing(time_center) & dum_center == 0
+replace time_center = time_center + 1 if e8semanas >= 3 & !missing(e8semanas)
 drop e8semanas
-recode cc_near (2=1) (3=0) (4=0) (9=.)
-recode dum_work (2=0) (9=.)
+recode cc_near (2 = 1) (3 4 = 0) (9=.)
+recode type_center (88 = .) //(9 = otra; 88 = NC)
+label val dum_work care_at_work dum_center cc_near sino
 
 sort folio tramo
 drop if folio[_n] == folio[_n-1] & tramo[_n] == tramo[_n-1]
@@ -423,6 +448,10 @@ rename _merge merge_cuidado
 tempfile householdsb_aux
 	save `householdsb_aux', replace
 
+*-----------------------------------------------*
+*----------"Historia Laboral" database----------*
+*-----------------------------------------------*
+
 use "$db/elpi_original/Historia_Laboral_2012", clear
 keep folio orden d1i* d1t*  d2 d3 d10 d12* d13 d8
 
@@ -431,7 +460,6 @@ rename folio_ folio
 rename orden_ orden
 
 reshape wide d1i* d1t*  d2_ d3_ d10_ d12_ d12t_ d13_ d8, i(folio) j(orden)
-
 
 merge 1:1 folio using `householdsb_aux'
 tab _merge
@@ -442,8 +470,7 @@ drop merge_hogar merge_cuidado merge_historia
 rename * *_2012
 rename folio_2012 folio
 
-rename (d1i*_2012 d1t*_2012 d2*_2012 d3*_2012 d10*_2012 d12*_2012 d13*_2012 d8*_2012) ///
- (d1i* d1t* d2* d3* d10* d12* d13* d8*)
+rename (d1i*_2012 d1t*_2012 d2*_2012 d3*_2012 d10*_2012 d12*_2012 d13*_2012 d8*_2012) (d1i* d1t* d2* d3* d10* d12* d13* d8*)
 
 merge 1:1 folio using `Data2010.dta'
 rename _merge merge_2010_2012
@@ -461,7 +488,7 @@ tempfile Data2012_2010
 save `Data2012_2010.dta', replace
 
 save "$db/ELPI_Panel.dta", replace
-stp
+
 ********************************************************************************
 **# ********************* * *CLEAN ELPI 2017* * ********************************
 ********************************************************************************
@@ -476,33 +503,36 @@ use "$db/elpi_original/Entrevistada_2017", clear
 	gen siblings_aux = (h1 == 8)
 	bys folio: egen tot_sib = sum(siblings_aux)
 	bysort folio: egen dum_siblings = max(siblings_aux) 
-	label var dum_siblings "1 si tiene herman@s 0 si no"
 	
 	*Generate "dum_young_siblings"
 	gen aux_sib2 = (h1 == 8 & h3 <= 4)
 	bys folio: egen tot_young_sib = sum(aux_sib2)
 	gen dum_young_siblings = (tot_young_sib > 0)
-	label var dum_young_siblings "1 si tiene hermano/a de 4 anios o menos"
 	
 	*Generate "dum_sibling_part" Sibling participation in center
 	gen dum_sibling_part = (dum_young_siblings == 1 & e1 == 1 & e4 <= 3) //4 corresponde a prekinder y kinder
-	label var dum_sibling_part "1 si hermano/a va a centro"
+	replace dum_sibling_part = . if dum_young_siblings == 0
 	
-	gen m_home_aux = (h1 == 2 | h1 == 4) 				//1 or 0 no other values
+	*Dummy Mother/Father at home
+	gen m_home_aux = (h1 == 2 | h1 == 4) 			//1 or 0 no other values
 	bysort folio: egen m_home=max(m_home_aux)		//1 if there is a mother at home
-	label var m_home "Mother at Home"
 
-	gen f_home_aux= (h1 == 3 | h1 == 5) 				//1 or 0 no other values
+	gen f_home_aux= (h1 == 3 | h1 == 5) 		//1 or 0 no other values
 	bysort folio: egen f_home=max(f_home_aux)	//1 if there is a father at home
-	label var m_home "Father at Home"
 	
-	*Generate Civil Status
-	gen married_aux = ((h1 == 2 | h1 == 4) & (h16 == 1 | h16 == 2| h16 == 3)) // casado o conviviente
-	replace married_aux = 1 if (h1 == 3 | h1 == 5) & (h16 == 1 | h16 == 2 | h16 == 3)
-	bys folio: egen married = max(married_aux)
+	*Generate dummy that both parents live with children (no matter the civil status)
+	gen married = (f_home == 1 & m_home == 1)
 	
 	*Generate numero integrantes del hogar
 	bys folio: egen n_integrantes = count(folio)
+	
+label var n_integrantes "Number of people in the home"
+label var f_home "1 if Father at Home"
+label var m_home "1 if Mother at Home"
+label var married "1 if both parents live with child"
+label var dum_siblings "1 if child has sibling(s)"
+label var dum_young_siblings "1 if child has sibling(s) 4 years old or younger"
+label var dum_sibling_part "1 if child's young sibling(s) goes to cc (P-K or lower)"
 	
 	* keep useful variables	
 	ren idregion 	region 
@@ -516,6 +546,14 @@ use "$db/elpi_original/Entrevistada_2017", clear
 	gen birth_weight=c30a*1000+c30b	
 	ren ytotcorh	monthly_Y
 	
+	foreach v of varlist dum_smoke dum_alc dum_drug{
+	    encode `v' (8 = .)
+	}
+	encode preg_control (9 = .)
+	encode q_sano (88 = .)
+	recode q_control (1/2 = 1) (3/4 = 2) (5/7 = 3) (8/99 = 4) 
+	label define q_control 1 "Menos de 3" 2 "Entre 3 y 4" 3 "Entre 5 y 7" 4 "8 o más", modify //Para hacere pregunta equivalente con ELPI 2010
+	label val q_control q_control
 *--------------------------------------*
 *----------"Hogares" database----------*
 *--------------------------------------*
@@ -550,33 +588,35 @@ use "$db/elpi_original/Entrevistada_2017", clear
 	
 	* Generate "mother_age"
 	gen  m_age_aux=h3 if h1 == 2 | h1 == 4			
-	by folio: egen m_age=min(m_age_aux) 		
-	label var m_age "Edad de la madre"
+	by folio: egen m_age=min(m_age_aux) 	
 
 	* Generate "mother_sch"
 	gen  m_sch_aux=ESC if h1 == 2 | h1 == 4			
 	by folio: egen m_sch=min(m_sch_aux) 		
-	label var m_sch "Escolaridad de la madre (años)"
 	
 	*Generate "mother educ"
 	gen m_educ_aux = educ if h1 == 2 | h1 == 4		
 	bys folio: egen m_educ = min(m_educ_aux) 	
-	label var m_educ "Educacion de la madre (nivel)"
 	
 	* Generate "father_sch"
 	gen  f_sch_aux = ESC if h1 == 3  | h1 == 5 | h1 == 7	
 	by folio: egen f_sch=min(f_sch_aux) 		
-	label var f_sch "Escolaridad del padre (años)"
 	
 	*Generate "father educ"
 	gen f_educ_aux = educ if h1 == 3 | h1 == 5 | h1 == 7	
 	bys folio: egen f_educ = min(f_educ_aux) 	
-	label var f_educ "Educacion del padre (nivel)"
 	
 	*Child gender
 	gen gender_aux = h2 if h1 == 1
 	bys folio: egen gender = min(gender_aux)
-	label var gender "Child gender"
+	
+
+label var m_sch "Mother's years of schooling"
+label var m_educ "Mother's educational level"
+label var f_sch "Father's years of schooling'"
+label var f_educ "Father's educational level"
+label var m_age "Mother's Age"
+label var gender "Gender of child (1=male)"
 
 *-----------------------------------------------*
 *----------"Cuidado Infantil" database----------*
@@ -584,7 +624,7 @@ use "$db/elpi_original/Entrevistada_2017", clear
 *Same database for 2017
 ren en10a	dum_center12345		//e7 antigua
 recode dum_center12345 (9=.) (2=0)
-ren en10b_b	dum_center67				//has some missings
+ren en10b_b	dum_center67		//has some missings
 recode dum_center67 (9=.) (2=0)
 ren en9a 	cc_near12345		//e11_1 antigua
 ren en9b 	cc_near67
@@ -679,13 +719,22 @@ rename _merge merge_evaluaciones	//we might use mother's work as outcome, so we 
 tempfile db2017eval
 	save `db2017eval'
 
+	
+********************************************************************************
+**# ******************** * *PANEL: 2010, 2012, 2017* ***************************
+********************************************************************************
+
 rename * *_2017
 rename folio_2017 folio
 
 merge 1:1 folio using `Data2012_2010.dta'
 rename _merge merge_2010_2012_2017
+atp
 
-*Birth year and birth month
+*-----------------------------------------*
+*---Birth year and month; School cohort---*
+*-----------------------------------------*
+
 gen birth_year = . 
 gen birth_month = .
 
@@ -715,21 +764,21 @@ replace cohort_school = birth_year if birth_month >= 4
 *---------------------------------------------------------*
 *---Child care dummies across the three rounds database---*
 *---------------------------------------------------------*
-forv t=1/6{
-tab dum_center`t'_2010, 
-tab dum_center`t'_2010, nol m
-tab dum_center`t'_2012, 
-tab dum_center`t'_2012, nol m
-}
-tab dum_center12345_2017, m
-tab dum_center67_2017, m
-
-forv t=1/8{
-sum dum_center`t'_2010
-sum dum_center`t'_2012
-}
-sum dum_center12345_2017
-sum dum_center67_2017
+// forv t=1/6{
+// tab dum_center`t'_2010, 
+// tab dum_center`t'_2010, nol m
+// tab dum_center`t'_2012, 
+// tab dum_center`t'_2012, nol m
+// }
+// tab dum_center12345_2017, m
+// tab dum_center67_2017, m
+//
+// forv t=1/8{
+// sum dum_center`t'_2010
+// sum dum_center`t'_2012
+// }
+// sum dum_center12345_2017
+// sum dum_center67_2017
 
 
 *dummy childcare
