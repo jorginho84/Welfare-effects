@@ -124,22 +124,23 @@ recode a19 (999 = .)
 	recode b2c (88 99 = .) (19 = 0) (9 = 8) //19 significa ninguno, 8 es el máximo.
 	recode b2n (88 99 = .) (19 = 0) //19 significa ninguno
 	* Generate "escolaridad"
-	gen ESC = 0 if inlist(b2n,0,1,2,3,4,7) //Preschool /Ed diferencial /ninguno.
-	replace ESC = b2c if inlist(b2n,5,6) //Básica /Preparatoria
-	replace ESC = b2c + 8 if inlist(b2n,9,11) //Media cient humanista o técnico
-	replace ESC = b2c + 6 if inlist(b2n,8,10) //Humanidades o tecnica (antiguo)
-	replace ESC = 12 if ESC >= 12 & !missing(ESC) //12 años de escolaridad es lo máximo. 
-	replace ESC = b2c + 12 if inlist(b2n,12,13) //CFT
-	replace ESC = b2c + 12 if inlist(b2n,14,15,16,17) //IP, Uni.
-	replace ESC = b2c + 17 if inlist(b2n,18) //Postgrado
-	replace ESC = 21 if ESC > 21 & !missing(ESC)
+	gen ESC = 0 			if inlist(b2n,0,1,2,3,4,7) //Preschool Ed diferencial /ninguno.
+	replace ESC = b2c 		if inlist(b2n,5,6) //Básica /Preparatoria
+	replace ESC = b2c + 8 	if inlist(b2n,9,11) //Media cient humanista o técnico
+	replace ESC = b2c + 6 	if inlist(b2n,8,10) //Humanidades o tecnica (antiguo)
+	replace ESC = 12 		if ESC >= 12 & !missing(ESC) //12 años de escolaridad es lo máximo. 
+	replace ESC = b2c + 12 	if inlist(b2n,12,13) //CFT
+	replace ESC = b2c + 12 	if inlist(b2n,14,15,16,17) //IP, Uni.
+	replace ESC = 18 		if ESC >= 19 & !missing(ESC)
+	replace ESC = b2c + 17 	if inlist(b2n,18) //Postgrado
+	replace ESC = 21 		if ESC > 21 & !missing(ESC)
 	
 	*Se corrigen los valores missing
-	replace ESC = 0 if missing(b2c) & inlist(b2n,5,6)
-	replace ESC = 8 if missing(b2c) & inlist(b2n,9,11) 
-	replace ESC = 6 if missing(b2c) & inlist(b2n,8,10)
-	replace ESC = 12 if missing(b2c) & inlist(b2n,12,13,14,15,16,17)
-	replace ESC = 17 if missing(b2c) & b2n == 18
+	replace ESC = 0 		if missing(b2c) & inlist(b2n,5,6)
+	replace ESC = 8 		if missing(b2c) & inlist(b2n,9,11) 
+	replace ESC = 6 		if missing(b2c) & inlist(b2n,8,10)
+	replace ESC = 12 		if missing(b2c) & inlist(b2n,12,13,14,15,16,17)
+	replace ESC = 17 		if missing(b2c) & b2n == 18
 		
 	replace ESC = . if inlist(b2n,88,99)
 	replace ESC = . if inlist(b2c,88,99)
@@ -183,7 +184,7 @@ recode a19 (999 = .)
 	gen dum_young_siblings = (a16 == 6 & a19 <= 4) // 1 if child has sibling(s) younger than 4 years old.
 	gen dum_sibling_part = (dum_young_siblings == 1 & b1==1 & b2n<=5) // 1 if child has siblings younger than 4 and they go to cc (pre-k or lower).
 	
-collapse (count) n_integrantes = orden (min) *_sch *_educ m_age gender (max) *_home m_maincarer dum_siblings dum_young_siblings dum_sibling_part (mean) d11m, by(folio fexp_hog)
+collapse (count) n_integrantes = orden (min) *_sch *_educ m_age gender (max) *_home m_maincarer dum_siblings dum_young_siblings dum_sibling_part (sum) tot_sib = dum_siblings (mean) d11m, by(folio fexp_hog)
 	
 	replace dum_sibling_part = . if dum_young_siblings == 0
 
@@ -207,6 +208,7 @@ label var gender "Gender of child (1=male)"
 label var dum_siblings "1 if child has sibling(s)"
 label var dum_young_siblings "1 if child has sibling(s) 4 years old or younger"
 label var dum_sibling_part "1 if child's young sibling(s) goes to cc (P-K or lower)"
+label var tot_sib "Number of siblings in the household"
 
 merge 1:1 folio using `scores.dta'
 tab _merge
@@ -221,7 +223,7 @@ use "$db/elpi_original/Cuidado_infantil_2010", clear
 
 keep folio orden j1 j2 j4 j9 j10 j11mes j11sem j14 j15 j15cod j27 
 
-ren (orden j1 j2 j4 j9 j10 j11mes j14 j15 j15cod j27) (tramo dum_work weeks_work mean_hours who_childcare dum_center time_center cc_near type_center other_type nut_status)
+ren (orden j1 j2 j4 j9 j10 j14 j15 j15cod j27) (tramo dum_work weeks_work mean_hours who_childcare dum_center cc_near type_center other_type nut_status)
 
 * NS/NR is considered a missing value.
 foreach v of varlist dum_work cc_near weeks_work dum_center type_center nut_status cc_near {
@@ -230,18 +232,18 @@ foreach v of varlist dum_work cc_near weeks_work dum_center type_center nut_stat
 recode mean_hours (999 = .)
 recode who_childcare (99 = .)
 recode other_type (99 = .)
-recode time_center (99 = .)
+recode j11mes (99 = .)
+recode j11sem (99 = .)
 
 *Recode to have No = 0
 recode dum_work (2 = 0) (8 = .)
 recode cc_near (2 = 0)
 recode dum_center (2 = 0)
 recode cc_near (2 = 0) 
-recode j11sem (99 = .)
 
+gen time_center = j11mes*4 + j11sem
 replace time_center = 0 if missing(time_center) & dum_center == 0
-replace time_center = time_center + 1 if j11sem >= 3 & !missing(j11sem) //(aproximates to a month)
-drop j11sem
+drop j11mes j11sem
 
 label define sino 1 "Sí" 0 "No", modify //Se genera nueva label porque luego LABB cambia.
 label val dum_work dum_center cc_near sino
@@ -258,6 +260,7 @@ reshape wide dum_work weeks_work mean_hours who_childcare dum_center time_center
 		label var other_type`i' "Otro tipo de establecimiento educacional en el tramo `i'"
 		label var nut_status`i' "Estado nutricional en el tramo `i'"
 		label var cc_near`i' "Was there a center nearby?"
+		label var time_center`i' "Time went to cc (weeks) tramo `i'"
 		}
 		
 merge 1:1 folio using `households.dta'
@@ -337,22 +340,22 @@ recode i1 (999 = .)
 	recode j2c (88 99 = .) (19 = 0) (9 = 8) //19 es ninguno, 8 se asume máximo.
 	recode j2n (88 99 = .) (21 = 0) //21 significa ninguno
 	
-	gen ESC = 0 if inlist(j2n,0,1,2,3,4,5,6,9) //Diferencial, ninguno, Preschool 
-	replace ESC = j2c if inlist(j2n,7,8) //Basica o preparatoria
-	replace ESC = j2c + 8 if inlist(j2n,11,13) //Media cient-humanista o técnico
-	replace ESC = j2c + 6 if inlist(j2n,10,12) //Humanidades o tecnica (antiguo)
-	replace ESC = 12 if ESC >= 12 & !missing(ESC) //12 años si terminó el colegio
-	replace ESC = j2c + 12 if inlist(j2n,14,15) //CFT
-	replace ESC = j2c + 12 if inlist(j2n,16,17,18,19) //IP U
-	replace ESC = j2c + 17 if inlist(j2n,20)
-	replace ESC = 21 if ESC > 21 & !missing(ESC) //Se asume como máximo años de escolaridad
+	gen ESC = 0 			if inlist(j2n,0,1,2,3,4,5,6,9) //Diferencial, ninguno, Preschool 
+	replace ESC = j2c 		if inlist(j2n,7,8) //Basica o preparatoria
+	replace ESC = j2c + 8 	if inlist(j2n,11,13) //Media cient-humanista o técnico
+	replace ESC = j2c + 6 	if inlist(j2n,10,12) //Humanidades o tecnica (antiguo)
+	replace ESC = 12 		if ESC >= 12 & !missing(ESC) //12 años si terminó el colegio
+	replace ESC = j2c + 12 	if inlist(j2n,14,15) //CFT
+	replace ESC = j2c + 12 	if inlist(j2n,16,17,18,19) //IP U
+	replace ESC = j2c + 17 	if inlist(j2n,20)
+	replace ESC = 21 		if ESC > 21 & !missing(ESC) //Máximo años de escolaridad
 	
 	*Se corrigen los valores missing
-	replace ESC = 0 if missing(j2c) & inlist(j2n,7,8)
-	replace ESC = 8 if missing(j2c) & inlist(j2n,11,13) 
-	replace ESC = 6 if missing(j2c) & inlist(j2n,10,12)
-	replace ESC = 12 if missing(j2c) & inlist(j2n,14,15,16,17,18,19)
-	replace ESC = 17 if missing(j2c) & j2n == 20
+	replace ESC = 0 		if missing(j2c) & inlist(j2n,7,8)
+	replace ESC = 8 		if missing(j2c) & inlist(j2n,11,13) 
+	replace ESC = 6 		if missing(j2c) & inlist(j2n,10,12)
+	replace ESC = 12 		if missing(j2c) & inlist(j2n,14,15,16,17,18,19)
+	replace ESC = 17 		if missing(j2c) & j2n == 20
 		
 	replace ESC = . if inlist(j2n,88,99)
 	replace ESC = . if inlist(j2c,19,99,99)
@@ -395,7 +398,7 @@ recode i1 (999 = .)
 	gen dum_young_siblings = (i2 == 6 & i1 <= 4) // 1 if child has sibling younger than 4 years old.
 	gen dum_sibling_part = (dum_young_siblings == 1 & j1==1 & j2n<=5) // 1 if child has siblings younger than 4 and they go to cc (pre-k or lower).
 
-collapse (count) n_integrantes = orden (min) *_sch *_educ m_age gender (max) *_home m_maincarer dum_siblings dum_young_siblings dum_sibling_part (mean) l11_monto, by(folio fexp_hog0 fexp_hogP)
+collapse (count) n_integrantes = orden (min) *_sch *_educ m_age gender (max) *_home m_maincarer dum_siblings dum_young_siblings dum_sibling_part (sum) tot_sib = dum_siblings (mean) l11_monto, by(folio fexp_hog0 fexp_hogP)
 	
 	replace dum_sibling_part = . if dum_young_siblings == 0
 
@@ -419,6 +422,7 @@ label var gender "Gender of child (1=male)"
 label var dum_siblings "1 if child has sibling(s)"
 label var dum_young_siblings "1 if child has sibling(s) 4 years old or younger"
 label var dum_sibling_part "1 if child's young sibling(s) goes to cc (P-K or lower)"
+label var tot_sib "Number of siblings in the household"
 
 merge 1:1 folio using `scoresb.dta'
 rename _merge merge_hogar
@@ -431,7 +435,7 @@ tempfile householdsb
 use "$db/elpi_original/Cuidado_infantil_2012", clear
 
 keep folio e1 e3 e6 e7 e11_1 e12 tramo e8meses e8semanas 
-ren (e1 e3 e6 e7 e11_1 e12 e8meses) (dum_work care_at_work who_childcare dum_center cc_near type_center time_center)
+ren (e1 e3 e6 e7 e11_1 e12) (dum_work care_at_work who_childcare dum_center cc_near type_center)
 
 label define sino 1 "Sí" 0 "No", modify
 
@@ -439,10 +443,10 @@ label define sino 1 "Sí" 0 "No", modify
 recode dum_work (2 = 0) (9 = .)
 recode care_at_work (2 = 0) (8 9 = .)
 recode dum_center (2 = 1) (3 = 1) (4 = 0) 
-recode time_center (99 = .)
-replace time_center = 0 if missing(time_center) & dum_center == 0
-replace time_center = time_center + 1 if e8semanas >= 3 & !missing(e8semanas)
-drop e8semanas
+recode e8meses (99 = .)
+gen time_center = e8meses*4 + e8semanas 
+replace time_center = 0 if dum_center == 0 & missing(time_center)
+drop e8meses e8semanas
 recode cc_near (2 = 1) (3 4 = 0) (9=.)
 recode type_center (88 = .) //(9 = otra; 88 = NC)
 label val dum_work care_at_work dum_center cc_near sino
@@ -460,6 +464,7 @@ reshape wide dum_work care_at_work who_childcare dum_center cc_near type_center 
 		label var dum_center`i' "Envió o no al niñ@ a un establecimiento en el tramo `i'"
 		label var cc_near`i' "Was there a center nearby?"
 		label var type_center`i' "Tipo de establecimiento educacional en el tramo `i'"
+		label var time_center`i' "Time went to cc (weeks) tramo `i'"
 		}
 		
 merge 1:1 folio using `householdsb.dta'
@@ -509,9 +514,11 @@ save `Data2012_2010.dta', replace
 
 save "$db/ELPI_Panel.dta", replace
 
+
 ********************************************************************************
 **# ********************* * *CLEAN ELPI 2017* * ********************************
 ********************************************************************************
+
 
 *-------------------------------------------*
 *----------"Entrevistada" database----------*
@@ -581,7 +588,7 @@ label var dum_sibling_part "1 if child's young sibling(s) goes to cc (P-K or low
 
 	* Generate "escolaridad"
 	recode e4 (88 = .)
-	recode e4_curso (9 10 = .)
+	recode e4_curso (9 10 = 8) //Se asume que máximo es 8
 	
 	gen ESC = 0 if inlist(e4,1,2,3,4,5) //No educ, preeschool, ed diferencial.
 	replace ESC = e4_curso 		if inlist(e4,6,7) //Primaria o preparatoria/ basica.
@@ -655,23 +662,24 @@ label var gender "Gender of child (1=male)"
 *----------"Cuidado Infantil" database----------*
 *-----------------------------------------------*
 *Same database for 2017
-ren en10a	dum_center12345		//e7 antigua
-recode dum_center12345 (9=.) (2=0)
-ren en10b_b	dum_center67		//has some missings
-recode dum_center67 (9=.) (2=0)
-ren en9a 	cc_near12345		//e11_1 antigua
-ren en9b 	cc_near67
-ren en15a	type_center12345	//e12 antigua
-ren en15b	type_center67
+ren (en10a en10b_b)	(dum_center12345 dum_center67)	//e7 antigua
+recode dum_center12345 	(9=.) (2=0)
+recode dum_center67 	(9=.) (2=0)
 
-rename en11a_m	time_center12345
-replace time_center12345 = 0 if (time_center12345 == . | time_center12345 == 99) & dum_center12345 == 0 
-replace time_center12345 = time_center12345 + 1 if en11a_s >= 3
-rename en11b_m time_center67
-replace time_center67 = 0 if (time_center67 == . | time_center67 == 99) & dum_center67 == 0
-replace time_center67 = time_center67 + 1 if en11b_s >= 3
-recode cc_near12345 (2=0) (9=.)
-recode cc_near67 (2=0) (9=.)
+ren (en9a en9b)	(cc_near12345 cc_near67) //e11_1 antigua
+recode cc_near12345 	(2=0) (9=.)
+recode cc_near67 		(2=0) (9=.)
+
+ren (en15a en15b) (type_center12345 type_center67) //e12 antigua
+
+foreach v of varlist en11a* en11b* {
+    recode `v' (99 = .)
+}
+gen time_center12345 = en11a_m*4 + en11a_s
+replace time_center12345 = 0 if time_center12345 == . & dum_center12345 == 0 
+gen time_center67 = en11b_m*4 + en11b_s
+replace time_center67 = 0 if time_center67 == . & dum_center67 == 0
+drop en11a* en11b*
 
 ren cl3a 	dum_work_new1
 ren cl3b 	dum_work_new2
@@ -682,10 +690,10 @@ ren cl3f 	dum_work_new6
 ren cl3g 	dum_work_new7
 ren cl3h	dum_work_new8
 forval t = 1/8{
-recode dum_work_new`t' (2=0)
+	recode dum_work_new`t' (2=0)
 }
-egen dum_work12345=rowmax(dum_work_new1 dum_work_new2 dum_work_new3 dum_work_new4 dum_work_new5)
-egen dum_work67=rowmax(dum_work_new6 dum_work_new7)
+egen dum_work12345 = rowmax(dum_work_new1 dum_work_new2 dum_work_new3 dum_work_new4 dum_work_new5)
+egen dum_work67 = rowmax(dum_work_new6 dum_work_new7)
 
 forval t = 1/8{
 	ren dum_work_new`t' 	dum_work`t'
@@ -693,25 +701,25 @@ forval t = 1/8{
 
 keep if h1==1|h1==2
 
-rename (o1 o10 y1)(work_aux hours_w_aux wage_aux)
+rename (o1 o10 y1) (work_aux hours_w_aux wage_aux)
 
-keep folio f_sch f_educ m_sch m_educ gender birth_weight dum_center12345 dum_center67 dum_work12345 dum_work67 cc_* ///
-	dum_siblings tot_sib dum_young_siblings f_home dum_smoke dum_alc dum_sano dum_drug preg_control ///
-	h1 m_age region idcomuna married n_integrantes fexp_enc0_2 fexp_eva0_2 fexp_hog0_2 ///
-	time_center12345 time_center67 monthly_Y dum_work* ///
-	work_aux hours_w_aux wage_aux espanel
+keep folio f_sch f_educ m_sch m_educ gender birth_weight dum_center12345 dum_center67 dum_work12345 dum_work67 cc_* dum_siblings tot_sib dum_young_siblings f_home dum_smoke dum_alc dum_sano dum_drug preg_control h1 m_age region idcomuna married n_integrantes fexp_enc0_2 fexp_eva0_2 fexp_hog0_2 time_center12345 time_center67 monthly_Y dum_work* work_aux hours_w_aux wage_aux espanel
+
+recode work_aux (2 = 0) (8 = .)
+recode wage_aux (9 = .)
+replace wage_aux = 0 if work_aux == 0 
+**#//Tal vederíamos reemplazar dork = 1 if hours > 0?. Lo mismo si wage > 0
+recode hours_w_aux (88 = .)
+replace hours_w_aux = 0 if work_aux == 0
+
 
 foreach j in work_ hours_w_ wage_ {
 by folio: egen `j'a=mean(`j')
 }
 
 **********d_work**********
-replace work_a=. if work_a==8
-replace work_a=0 if work_a==2
 rename work_a d_work_a
 **********wage************
-replace wage_a=. if wage_a==9 //Code NA
-replace wage_a=0 if d_work_a==0 //Code wage of unemployed as 0
 
 local usd2017=649.33
 replace wage_a=round(wage_a/`usd2017',1)
@@ -719,7 +727,8 @@ replace wage_a=round(wage_a/`usd2017',1)
 **********hours***********
 replace hours_w_a=. if hours_w_a==88 //Code NA
 replace hours_w_a=0 if d_work_a==0 //Code hours of unemployed as 0
-replace hours_w_a=68 if hours_w_a>=68&hours_w_a!=. //Full+part time job=68 hrs
+replace hours_w_a=68 if hours_w_a>=68 & hours_w_a!=. //Full+part time job=68 hrs
+**#Me parece que "Full+part time job=68 hrs" no se hace para ELPI 2010 y 2012
 
 drop work_aux wage_aux hours_w_aux
 
@@ -761,9 +770,10 @@ tempfile db2017eval
 rename * *_2017
 rename folio_2017 folio
 
-merge 1:1 folio using `Data2012_2010.dta'
+// merge 1:1 folio using `Data2012_2010.dta'
+merge 1:1 folio using "$db/ELPI_Panel.dta"
 rename _merge merge_2010_2012_2017
-atp
+stp
 
 *-----------------------------------------*
 *---Birth year and month; School cohort---*
@@ -772,21 +782,14 @@ atp
 gen birth_year = . 
 gen birth_month = .
 
-forval j = 0/5{
-	replace birth_year =  2010 - `j' if inrange(edad_meses_2010,`j'*12,`j'*12+11)
-}
-forval j = 0/7{
-	replace birth_year =  2012 - `j' if inrange(edad_meses_2012,`j'*12,`j'*12+11) & birth_year == .
-}
-forval j = 0/13{
-	replace birth_year =  2017 - `j' if inrange(edad_mesesr_2017,`j'*12,`j'*12+11) & birth_year == .
-}
+replace birth_year = 2010 - floor(edad_meses_2010/12)
+replace birth_year = 2012 - floor(edad_meses_2012/12) if birth_year == .
+replace birth_year = 2017 - floor(edad_mesesr_2017/12) if birth_year == .
 replace birth_year = 2006 if birth_year < 2006 //11 datos
 
-replace birth_month = edad_meses_2010 - (2010 - birth_year)*12 if birth_month == .
-replace birth_month = edad_meses_2012 - (2012 - birth_year)*12 if birth_month == .
-replace birth_month = edad_mesesr_2017 - (2017 - birth_year)*12 if birth_month == .
-replace birth_month = 12 if birth_month == 0
+replace birth_month = 12 - (edad_meses_2010 - floor(edad_meses_2010/12)*12)
+replace birth_month = 12 - (edad_meses_2012 - floor(edad_meses_2012/12)*12) if birth_month ==. 
+replace birth_month = 12 - (edad_mesesr_2017 - floor(edad_mesesr_2017/12)*12) if birth_month ==. 
 
 gen cohort = birth_year
 
@@ -822,8 +825,8 @@ forvalues t=1/7{
 	replace d_cc_t`t' = 0 if dum_center`t'_2010 == 0 // | dum_center`t'_2010 == 9
 
 	*search in 2012 if no history
-	replace d_cc_t`t' = 1 if (dum_center`t'_2012 == 1) & (dum_center`t'_2010 == .)
-	replace d_cc_t`t' = 0 if dum_center`t'_2012==0 & (dum_center`t'_2010 == .)
+	replace d_cc_t`t' = 1 if dum_center`t'_2012 == 1 & (dum_center`t'_2010 == .)
+	replace d_cc_t`t' = 0 if dum_center`t'_2012 == 0 & (dum_center`t'_2010 == .)
 }
 
 *Two dummies for two age categories
@@ -831,55 +834,70 @@ gen d_cc_02 = .
 replace d_cc_02=0 if d_cc_t1 == 0 | d_cc_t2 == 0 | d_cc_t3 == 0 | d_cc_t4 == 0 | d_cc_t5 == 0
 replace d_cc_02=1 if d_cc_t1 == 1 | d_cc_t2 == 1 | d_cc_t3 == 1 | d_cc_t4 == 1 | d_cc_t5 == 1
 
+// egen d_cc_02_2 = rowmax(d_cc_t1 d_cc_t2 d_cc_t3 d_cc_t4 d_cc_t5) //Variable está bien creada.
+
 replace d_cc_02=dum_center12345_2017 if d_cc_02==.
 
 
 gen d_cc_34 = .
 replace d_cc_34=0 if d_cc_t6 == 0 | d_cc_t7 == 0
 replace d_cc_34=1 if d_cc_t6 == 1 | d_cc_t7 == 1
+// egen d_cc_02_34_2 = rowmax(d_cc_t6 d_cc_t7)
 
 replace d_cc_34=dum_center67_2017 if d_cc_34==.
+
+label var d_cc_02 "Child goes to cc center in ages 0 to 2"
+label var d_cc_34 "Child goes to cc center in ages 3 to 4"
 
 
 *------------------------------------------------------*
 *------Did child attend cc center enough time?---------*
 *------------------------------------------------------*
-local p = 5 //Si está dentro del 20% que menos fue, no se considera 
+// Si time_center <= 20% semanas del tramo, no atendió. Asistencia bruta promedio sg CASEN es 54%. 
+
+/*
+tramo 1: 0-3 meses
+tramo 2: 3-6
+tramo 3: 6-12
+tramo 4: 12-18
+tramo 5: 18-24
+tramo 6: 2-3 años
+tramo 7: 3-4 
+tramo 8: 4-5 
+*/
+
 foreach y in 2010 2012{
-	forval t = 1/7{
-	di `y'
-	di `t'
-	_pctile time_center`t'_`y' if dum_center`t'_`y' != 0, n(`p')
-	return li
-	replace dum_center`t'_`y' = 0 if time_center`t'_`y' <= r(r1) 
+    forval t = 1/2{
+	    replace dum_center`t'_`y' = 0 if time_center`t'_`y' < 3*4/5 & !missing(dum_center`t'_`y')
+	}
+	forval t = 3/5{
+	    replace dum_center`t'_`y' = 0 if time_center`t'_`y' < 6*4/5 & !missing(dum_center`t'_`y')
+	}
+	forval t = 1/2{
+	    replace dum_center`t'_`y' = 0 if time_center`t'_`y' < 12*4/5 & !missing(dum_center`t'_`y')
 	}
 }
-	_pctile time_center12345_2017 if dum_center12345 != 0, n(`p')
-	replace dum_center12345 = 0 if time_center12345_2017 <= r(r1)
-	_pctile time_center67_2017 if dum_center67 != 0, n(`p')
-	replace dum_center67 = 0 if time_center67_2017 <= r(r1)
+
+	replace dum_center12345 = 0 if time_center12345_2017 <= 24*4/5 //24 meses max
+	replace dum_center67 = 0 if time_center67_2017 <= 24*4/5 //24 meses max tb.
 
 forvalues t=1/7{
-	gen d_cc_t`t'_v2	 = .
-	replace d_cc_t`t'_v2 = 1 if dum_center`t'_2010 == 1
-	replace d_cc_t`t'_v2 = 0 if dum_center`t'_2010 == 0 // | dum_center`t'_2010 == 9
-
-	*search in 2012 if no history
-	replace d_cc_t`t'_v2 = 1 if (dum_center`t'_2012 == 1) & (dum_center`t'_2010 == .)
-	replace d_cc_t`t'_v2 = 0 if dum_center`t'_2012==0 & (dum_center`t'_2010 == .)
+	gen d_cc_t`t'_v2	 = dum_center`t'_2010
+	replace d_cc_t`t'_v2 = dum_center`t'_2012 if dum_center`t'_2010 == .
 }
 
-
-gen d_cc_02_v2 = .
-replace d_cc_02_v2 = 0 if d_cc_t1_v2 == 0 | d_cc_t2_v2 == 0 | d_cc_t3_v2 == 0 | d_cc_t4_v2 == 0 | d_cc_t5_v2 == 0
-replace d_cc_02_v2 = 1 if d_cc_t1_v2 == 1 | d_cc_t2_v2 == 1 | d_cc_t3_v2 == 1 | d_cc_t4_v2 == 1 | d_cc_t5_v2 == 1
+egen d_cc_02_v2 = rowmax(d_cc_t1_v2 d_cc_t2_v2 d_cc_t3_v2 d_cc_t4_v2 d_cc_t5_v2)
 replace d_cc_02_v2 = dum_center12345_2017 if d_cc_02_v2==.
 
-gen d_cc_34_v2 = .
-replace d_cc_34_v2=0 if d_cc_t6_v2 == 0 | d_cc_t7_v2 == 0
-replace d_cc_34_v2=1 if d_cc_t6_v2 == 1 | d_cc_t7_v2 == 1
+egen d_cc_34_v2 = rowmax(d_cc_t6_v2 d_cc_t7_v2)
 replace d_cc_34_v2=dum_center67_2017 if d_cc_34_v2==.
 
+label var d_cc_02_v2 "Child goes to cc center in ages 0 to 2, 20% of the time or more"
+label var d_cc_34_v2 "Child goes to cc center in ages 3 to 4, 20% of the time or more"
+
+*------------------------------------------------------*
+*-------------Was there a center nearby?---------------*
+*------------------------------------------------------*
 
 forval t = 1/8{
 	gen cc_near`t' = cc_near`t'_2010
@@ -900,30 +918,43 @@ replace cc_near_3 = 0 if cc_near6 == 0
 replace cc_near_3 = 1 if cc_near6 == 1 
 replace cc_near_3 = cc_near67_2017 if cc_near_3==.
 
+label var cc_near_02 "1 if there was a center nearby at ages 0-2"
+label var cc_near_34 "1 if there was a center nearby at ages 3-4"
+label var cc_near_3 "1 if there was a center nearby at age 3"
+
 
 *---------------------------------------------*
 *----------Tests across three rounds----------*
 *---------------------------------------------*
 
 gen test=.
+gen test_year = .
 replace test=BATTELLE_t_2017
+replace test_year = 2017 if test != .
 replace test=BATTELLE_t_2012 if test==. & (birth_year==2005|birth_year==2006|birth_year==2007|birth_year==2008)
+replace test_year = 2012 if test != . & test_year == .
 replace test=BATTELLE_t_2010 if test==. & (birth_year==2005|birth_year==2006)
+replace test_year = 2010 if test != . & test_year == .
+
+label var test "test BATELLE"
+label var test_year "Año de aplicación test BATELLE"
+
 
 *------------------------------------------------*
 *----------Controls across three rounds----------*
 *------------------------------------------------*
 
-local precontrols m_sch m_educ f_home f_sch f_educ preg_control dum_smoke dum_alc gender ///
-dum_sano m_age dum_siblings tot_sib dum_young_siblings married 
+local precontrols m_sch m_educ f_home f_sch f_educ preg_control dum_smoke dum_alc gender dum_sano m_age dum_siblings tot_sib dum_young_siblings married 
 
 foreach var in `precontrols'{
+    di "`var'"
 gen `var'=`var'_2010
 replace `var'=`var'_2012 if `var'==.
 replace `var'=`var'_2017 if `var'==.
 }
 
 foreach var in comuna_cod WAIS_t_num WAIS_t_vo {
+    di "`var'"
 gen `var'=`var'_2010
 replace `var'=`var'_2012 if `var'==.
 }
@@ -939,7 +970,7 @@ forvalues t=1/8{
 	gen dum_work_t10 = dum_work10_2012
 
 egen risk=rowmean(preg_control dum_smoke dum_alc dum_sano)
-sum  risk m_sch f_home m_age dum_siblings comuna_cod WAIS_t_num WAIS_t_vo
+// sum  risk m_sch f_home m_age dum_siblings comuna_cod WAIS_t_num WAIS_t_vo
 
 tempfile ELPI_Panel
 save `ELPI_Panel'
@@ -950,41 +981,36 @@ save `ELPI_Panel'
 **************************** * *GEODATA* * *************************************
 ********************************************************************************
 
-if `run_geo' == 1 {
-	qui: do "$code_dir/geodata.do"
-}
+// if `run_geo' == 1 {
+// 	qui: do "$code_dir/geodata.do"
+// }
 
 
 *---------------------------------------------------*
 *---------------CALLING ELPI DATABASE---------------*
 *---------------------------------------------------*
 
-*2012 first
 foreach elpi_year in 2010 2012{
-global bases Centers_`elpi_year' Centers_`elpi_year'_02center Centers_`elpi_year'_34center 
-foreach base in $bases{
-use "$db/ELPI_N_`base'", clear
-foreach var of varlist _all {
-rename `var' `var'_`elpi_year'
-}
-rename folio_`elpi_year' folio
-tempfile `base'_temp
-save ``base'_temp'
-di "``base'_temp' saved"
-}
+	global bases Centers_`elpi_year'_34center
+	foreach base in $bases{
+		use "$db/ELPI_N_`base'", clear
+		foreach var of varlist _all {
+			rename `var' `var'_`elpi_year'
+		}
+		rename folio_`elpi_year' folio
+		tempfile `base'_temp
+		save ``base'_temp'
+		di "``base'_temp' saved"
+	}
 }
 
 use `ELPI_Panel', clear //23245 obs
-
-merge 1:1 folio using `Centers_2012_temp'
-tab _merge merge_elpi, mi
-rename _merge merge_centers_2012
-merge 1:1 folio using `Centers_2012_02center_temp'
-rename _merge merge_centers02_2012
 merge 1:1 folio using `Centers_2012_34center_temp'
 rename _merge merge_centers34_2012
-tab merge_centers_2012 merge_centers02_2012, mi 
-tab merge_centers_2012 merge_centers34_2012, mi
+merge 1:1 folio using `Centers_2010_34center_temp'
+rename _merge merge_centers34_2010
+
+tab merge_centers34_2010 merge_centers34_2012, mi
 
 /*Note: our assumption is that when there are no distances, that 
 means that the distances are very long, not that there are variables missing
@@ -997,12 +1023,12 @@ on them not having distances*/
 *use "$db/ELPI_Panel", clear
 *keep if merge_elpi == 3 // Deja a los que están sólo en 2010
 						// Cohort baja a 5000 obs
-merge 1:1 folio using `Centers_2010_temp'
-rename _merge merge_centers_2010
-merge 1:1 folio using `Centers_2010_02center_temp'
-rename _merge merge_centers02_2010
-merge 1:1 folio using `Centers_2010_34center_temp'
-rename _merge merge_centers34_2010
+// merge 1:1 folio using `Centers_2010_temp'
+// rename _merge merge_centers_2010
+// merge 1:1 folio using `Centers_2010_02center_temp'
+// rename _merge merge_centers02_2010
+// merge 1:1 folio using `Centers_2010_34center_temp'
+// rename _merge merge_centers34_2010
 
 *N_centers300_y2006_34_2012 dist_min_y2007_34_2012
 *merge 1:1 folio using `data_2012' //THIS IS VERY BAD, weird behavior 
