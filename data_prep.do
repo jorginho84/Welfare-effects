@@ -480,11 +480,21 @@ tempfile householdsb_aux
 use "$db/elpi_original/Historia_Laboral_2012", clear
 keep folio orden d1i* d1t*  d2 d3 d10 d12* d13 d8
 
+egen fecha_inicio_aux = concat(d1ia d1im)
+gen fecha_inicio_w = date(fecha_inicio_aux, "YM")
+egen fecha_termino_aux = concat(d1ta d1tm)
+gen fecha_termino_w = date(fecha_termino_aux, "YM")
+drop fecha*_aux d1i* d1t*
+
 rename * *_
 rename folio_ folio
 rename orden_ orden
 
-reshape wide d1i* d1t*  d2_ d3_ d10_ d12_ d12t_ d13_ d8, i(folio) j(orden)
+bys folio: egen fecha_entrevista_2012 = max(fecha_termino_w)
+
+reshape wide fecha_inicio* fecha_termino* d2_ d3_ d10_ d12_ d12t_ d13_ d8, i(folio) j(orden)
+format fecha_inicio_w* fecha_termino_w* fecha_entrevista_2012 %td
+replace fecha_entrevista_2012 = date("01jul2012","DMY") if fecha_entrevista_2012 <= date("01apr2012","DMY") //Se reemplaza por fecha mediana
 
 merge 1:1 folio using `householdsb_aux'
 tab _merge
@@ -495,7 +505,8 @@ drop merge_hogar merge_cuidado merge_historia
 rename * *_2012
 rename folio_2012 folio
 
-rename (d1i*_2012 d1t*_2012 d2*_2012 d3*_2012 d10*_2012 d12*_2012 d13*_2012 d8*_2012) (d1i* d1t* d2* d3* d10* d12* d13* d8*)
+rename (fecha_entrevista_2012_ fecha_inicio*_2012 fecha_termino*_2012) (fecha_entrevista_2012 fecha_inicio* fecha_termino*)
+rename (d2*_2012 d3*_2012 d10*_2012 d12*_2012 d13*_2012 d8*_2012) (d2* d3* d10* d12* d13* d8*)
 
 merge 1:1 folio using `Data2010.dta'
 rename _merge merge_2010_2012
@@ -779,16 +790,17 @@ stp
 *---Birth year and month; School cohort---*
 *-----------------------------------------*
 
-gen birth_year = . 
-gen birth_month = .
 
-replace birth_year = 2010 - floor(edad_meses_2010/12)
-replace birth_year = 2012 - floor(edad_meses_2012/12) if birth_year == .
+gen birth_date = fecha_entrevista_2012 - edad_meses_2012*30
+gen birth_month = month(birth_date)
+gen birth_year = year(birth_date)
+drop birth_date
+
+replace birth_year = 2010 - floor(edad_meses_2010/12)  if birth_year == .
 replace birth_year = 2017 - floor(edad_mesesr_2017/12) if birth_year == .
 replace birth_year = 2006 if birth_year < 2006 //11 datos
 
-replace birth_month = 12 - (edad_meses_2010 - floor(edad_meses_2010/12)*12)
-replace birth_month = 12 - (edad_meses_2012 - floor(edad_meses_2012/12)*12) if birth_month ==. 
+replace birth_month = 12 - (edad_meses_2010 - floor(edad_meses_2010/12)*12) if birth_month ==. 
 replace birth_month = 12 - (edad_mesesr_2017 - floor(edad_mesesr_2017/12)*12) if birth_month ==. 
 
 gen cohort = birth_year
@@ -945,7 +957,7 @@ label var test_year "Año de aplicación test BATELLE"
 *------------------------------------------------*
 
 local precontrols m_sch m_educ f_home f_sch f_educ preg_control dum_smoke dum_alc gender dum_sano m_age dum_siblings tot_sib dum_young_siblings married 
-
+// Father at home debería ser considerado a la edad de 34? o el primer dato que tengamos?
 foreach var in `precontrols'{
     di "`var'"
 gen `var'=`var'_2010
