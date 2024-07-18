@@ -38,13 +38,14 @@ else if "`user'" == "Jorge"{
 }
 
 if "`user'" == "Cec"{
-	global des		"C:\Users\Cecilia\Mi unidad\Uandes\Jardines_elpi"
+	global des		"G:\Mi unidad\Uandes\Jardines_elpi"
 	cd "$des"
 	global db 		"$des/Data"
 // 	global results 	"$des/results"
-	global codes 	"C:\Users\Cecilia\Documents\GitHub\Welfare-effects"
+	global codes 	"C:\Users\ccorrea\OneDrive - Universidad de los Andes\Documentos\GitHub\Welfare-effects"
 // 	global code_dir	"$des"
 }
+
 
 
 /*
@@ -191,24 +192,31 @@ collapse (count) n_integrantes = orden (min) *_sch *_educ m_age gender (max) *_h
 	*Generate dummy that both parents live with children (no matter the civil status)
 	gen married = (f_home == 1 & m_home == 1)
 
+	*F expansión
 	ren fexp_hog FE_hog
+	
+	* Percentil de ingreso del hogar
 	ren d11m  monthly_Y
+	recode monthly_Y (99 = .)
+	xtile percentile_income_h = monthly_Y [pw = FE_hog], n(100)
+	
 
-label var n_integrantes "Number of people in the home"
-label var m_sch "Mother's years of schooling"
-label var m_educ "Mother's educational level"
-label var f_sch "Father's years of schooling'"
-label var f_educ "Father's educational level"
-label var f_home "1 if Father at Home"
-label var m_home "1 if Mother at Home"
-label var married "1 if both parents live with child"
-label var m_maincarer "1 if Mother is the main carer"
-label var m_age "Mother's Age"
-label var gender "Gender of child (1=male)"
-label var dum_siblings "1 if child has sibling(s)"
-label var dum_young_siblings "1 if child has sibling(s) 4 years old or younger"
-label var dum_sibling_part "1 if child's young sibling(s) goes to cc (P-K or lower)"
-label var tot_sib "Number of siblings in the household"
+// label var n_integrantes "Number of people in the home"
+// label var m_sch "Mother's years of schooling"
+// label var m_educ "Mother's educational level"
+// label var f_sch "Father's years of schooling'"
+// label var f_educ "Father's educational level"
+// label var f_home "1 if Father at Home"
+// label var m_home "1 if Mother at Home"
+// label var married "1 if both parents live with child"
+// label var m_maincarer "1 if Mother is the main carer"
+// label var m_age "Mother's Age"
+// label var gender "Gender of child (1=male)"
+// label var dum_siblings "1 if child has sibling(s)"
+// label var dum_young_siblings "1 if child has sibling(s) 4 years old or younger"
+// label var dum_sibling_part "1 if child's young sibling(s) goes to cc (P-K or lower)"
+// label var tot_sib "Number of siblings in the household"
+label var percentile_income "Percentil de ingreso con respecto a hogares 2010"
 
 merge 1:1 folio using `scores.dta'
 tab _merge
@@ -406,23 +414,28 @@ collapse (count) n_integrantes = orden (min) *_sch *_educ m_age gender (max) *_h
 	gen married = (f_home == 1 & m_home == 1)
 	
 	ren (fexp_hog0 fexp_hogP) (FE_hog FE_hog_P)
+	
+	* Percentil de ingreso del hogar
 	ren l11_monto monthly_Y
+	recode monthly_Y (99 = .)
+	xtile percentile_income_h = monthly_Y [pw = FE_hog], n(100)
 
-label var n_integrantes "Number of people in the home"
-label var m_sch "Mother's years of schooling"
-label var m_educ "Mother's educational level"
-label var f_sch "Father's years of schooling'"
-label var f_educ "Fathar's educational level"
-label var f_home "1 if Father at Home"
-label var m_home "1 if Mother at Home"
-label var married "1 if both parents live with child"
-label var m_maincarer "1 if Mother is the main carer"
-label var m_age "Mother's Age"
-label var gender "Gender of child (1=male)"
-label var dum_siblings "1 if child has sibling(s)"
-label var dum_young_siblings "1 if child has sibling(s) 4 years old or younger"
-label var dum_sibling_part "1 if child's young sibling(s) goes to cc (P-K or lower)"
-label var tot_sib "Number of siblings in the household"
+// label var n_integrantes "Number of people in the home"
+// label var m_sch "Mother's years of schooling"
+// label var m_educ "Mother's educational level"
+// label var f_sch "Father's years of schooling'"
+// label var f_educ "Fathar's educational level"
+// label var f_home "1 if Father at Home"
+// label var m_home "1 if Mother at Home"
+// label var married "1 if both parents live with child"
+// label var m_maincarer "1 if Mother is the main carer"
+// label var m_age "Mother's Age"
+// label var gender "Gender of child (1=male)"
+// label var dum_siblings "1 if child has sibling(s)"
+// label var dum_young_siblings "1 if child has sibling(s) 4 years old or younger"
+// label var dum_sibling_part "1 if child's young sibling(s) goes to cc (P-K or lower)"
+// label var tot_sib "Number of siblings in the household"
+label var percentile_income "Percentil de ingreso con respecto a hogares 2012"
 
 merge 1:1 folio using `scoresb.dta'
 rename _merge merge_hogar
@@ -584,6 +597,10 @@ label var dum_sibling_part "1 if child's young sibling(s) goes to cc (P-K or low
 	gen birth_weight=c30a*1000+c30b	
 	ren ytotcorh	monthly_Y
 	
+	*Percentil de ingreso del hogar 2017
+	xtile percentile_income_h = monthly_Y [pw = fexp_hog0_2], n(100)
+	label var percentile_income "Percentil de ingreso con respecto a hogares 2017"
+	 
 	foreach v of varlist dum_smoke dum_alc dum_drug{
 	    recode `v' (8 = .)
 	}
@@ -714,7 +731,7 @@ keep if h1==1|h1==2
 
 rename (o1 o10 y1) (work_aux hours_w_aux wage_aux)
 
-keep folio f_sch f_educ m_sch m_educ gender birth_weight dum_center12345 dum_center67 dum_work12345 dum_work67 cc_* dum_siblings tot_sib dum_young_siblings f_home dum_smoke dum_alc dum_sano dum_drug preg_control h1 m_age region idcomuna married n_integrantes fexp_enc0_2 fexp_eva0_2 fexp_hog0_2 time_center12345 time_center67 monthly_Y dum_work* work_aux hours_w_aux wage_aux espanel
+keep folio f_sch f_educ m_sch m_educ gender birth_weight dum_center12345 dum_center67 dum_work12345 dum_work67 cc_* dum_siblings tot_sib dum_young_siblings f_home dum_smoke dum_alc dum_sano dum_drug preg_control h1 m_age region idcomuna married n_integrantes fexp_enc0_2 fexp_eva0_2 fexp_hog0_2 time_center12345 time_center67 monthly_Y dum_work* work_aux hours_w_aux wage_aux espanel percentile_income_h
 
 recode work_aux (2 = 0) (8 = .)
 recode wage_aux (9 = .)
@@ -784,7 +801,6 @@ rename folio_2017 folio
 // merge 1:1 folio using `Data2012_2010.dta'
 merge 1:1 folio using "$db/ELPI_Panel.dta"
 rename _merge merge_2010_2012_2017
-stp
 
 *-----------------------------------------*
 *---Birth year and month; School cohort---*
@@ -794,7 +810,6 @@ stp
 gen birth_date = fecha_entrevista_2012 - edad_meses_2012*30
 gen birth_month = month(birth_date)
 gen birth_year = year(birth_date)
-drop birth_date
 
 replace birth_year = 2010 - floor(edad_meses_2010/12)  if birth_year == .
 replace birth_year = 2017 - floor(edad_mesesr_2017/12) if birth_year == .
@@ -861,51 +876,57 @@ replace d_cc_34=dum_center67_2017 if d_cc_34==.
 label var d_cc_02 "Child goes to cc center in ages 0 to 2"
 label var d_cc_34 "Child goes to cc center in ages 3 to 4"
 
+drop d_cc_t*
+
 
 *------------------------------------------------------*
 *------Did child attend cc center enough time?---------*
 *------------------------------------------------------*
-// Si time_center <= 20% semanas del tramo, no atendió. Asistencia bruta promedio sg CASEN es 54%. 
+// p20 --> Si participó menos del 20% del tiempo, no participó
+// p40 --> Si participó menos del 40% del tiempo, no participó
+// p50 --> Si participó menos del 50% del tiempo, no participó
+// p70 --> Si participó menos del 70% del tiempo, no participó
+*Recordar que time center está en semanas.
 
-/*
-tramo 1: 0-3 meses
-tramo 2: 3-6
-tramo 3: 6-12
-tramo 4: 12-18
-tramo 5: 18-24
-tramo 6: 2-3 años
-tramo 7: 3-4 
-tramo 8: 4-5 
-*/
-
+foreach p in 20 40 50 70 {
+	di "`p'%"
+	qui{
 foreach y in 2010 2012{
     forval t = 1/2{
-	    replace dum_center`t'_`y' = 0 if time_center`t'_`y' < 3*4/5 & !missing(dum_center`t'_`y')
+		gen dum_center`t'_`y'_p`p' = dum_center`t'_`y' 
+	    replace dum_center`t'_`y'_p`p' = 0 if time_center`t'_`y' < 3*4*`p'/100 & !missing(dum_center`t'_`y')
 	}
 	forval t = 3/5{
-	    replace dum_center`t'_`y' = 0 if time_center`t'_`y' < 6*4/5 & !missing(dum_center`t'_`y')
+	    gen dum_center`t'_`y'_p`p' = dum_center`t'_`y' 
+	    replace dum_center`t'_`y'_p`p' = 0 if time_center`t'_`y' < 6*4*`p'/100 & !missing(dum_center`t'_`y')
 	}
-	forval t = 1/2{
-	    replace dum_center`t'_`y' = 0 if time_center`t'_`y' < 12*4/5 & !missing(dum_center`t'_`y')
+	forval t = 6/7{
+	    gen dum_center`t'_`y'_p`p' = dum_center`t'_`y' 
+	    replace dum_center`t'_`y'_p`p' = 0 if time_center`t'_`y' < 12*4*`p'/100 & !missing(dum_center`t'_`y')
 	}
 }
-
-	replace dum_center12345 = 0 if time_center12345_2017 <= 24*4/5 //24 meses max
-	replace dum_center67 = 0 if time_center67_2017 <= 24*4/5 //24 meses max tb.
+	gen dum_center12345_p`p' = dum_center12345_2017  
+	replace dum_center12345_p`p' = 0 if time_center12345_2017 <= 24*4*`p'/100 & !missing(dum_center12345_2017) //24 meses max
+	gen dum_center67_p`p' = dum_center67_2017
+	replace dum_center67_p`p' = 0 if time_center67_2017 <= 24*4*`p'/100 & !missing(dum_center67_2017) //24 meses max tb.
 
 forvalues t=1/7{
-	gen d_cc_t`t'_v2	 = dum_center`t'_2010
-	replace d_cc_t`t'_v2 = dum_center`t'_2012 if dum_center`t'_2010 == .
+	gen d_cc_t`t'_p`p'	   = dum_center`t'_2010_p`p'
+	replace d_cc_t`t'_p`p' = dum_center`t'_2012_p`p' if d_cc_t`t'_p`p' == .
 }
 
-egen d_cc_02_v2 = rowmax(d_cc_t1_v2 d_cc_t2_v2 d_cc_t3_v2 d_cc_t4_v2 d_cc_t5_v2)
-replace d_cc_02_v2 = dum_center12345_2017 if d_cc_02_v2==.
+egen d_cc_02_p`p' = rowmax(d_cc_t1_p`p' d_cc_t2_p`p' d_cc_t3_p`p' d_cc_t4_p`p' d_cc_t5_p`p')
+replace d_cc_02_p`p' = dum_center12345_p`p' if d_cc_02_p`p'==.
 
-egen d_cc_34_v2 = rowmax(d_cc_t6_v2 d_cc_t7_v2)
-replace d_cc_34_v2=dum_center67_2017 if d_cc_34_v2==.
+egen d_cc_34_p`p' = rowmax(d_cc_t6_p`p' d_cc_t7_p`p')
+replace d_cc_34_p`p' = dum_center67_p`p' if d_cc_34_p`p'==.
 
-label var d_cc_02_v2 "Child goes to cc center in ages 0 to 2, 20% of the time or more"
-label var d_cc_34_v2 "Child goes to cc center in ages 3 to 4, 20% of the time or more"
+label var d_cc_02_p`p' "Child goes to cc center in ages 0 to 2, at least `p'% of the time"
+label var d_cc_34_p`p' "Child goes to cc center in ages 3 to 4, at least `p'% of the time"
+
+drop dum_center*_2010_p`p' dum_center*_2012_p`p' dum_center67_p`p' dum_center12345_p`p' d_cc_t*_p`p'
+	}
+}
 
 *------------------------------------------------------*
 *-------------Was there a center nearby?---------------*
@@ -987,10 +1008,10 @@ egen risk=rowmean(preg_control dum_smoke dum_alc dum_sano)
 tempfile ELPI_Panel
 save `ELPI_Panel'
 
-*save "$db/ELPI_Panel.dta", replace
-
+save "$db/ELPI_Panel.dta", replace
+stp
 ********************************************************************************
-**************************** * *GEODATA* * *************************************
+**# ************************ * *GEODATA* * *************************************
 ********************************************************************************
 
 // if `run_geo' == 1 {
@@ -1016,7 +1037,8 @@ foreach elpi_year in 2010 2012{
 	}
 }
 
-use `ELPI_Panel', clear //23245 obs
+// use `ELPI_Panel', clear //23245 obs
+use "$db/ELPI_Panel.dta", clear
 merge 1:1 folio using `Centers_2012_34center_temp'
 rename _merge merge_centers34_2012
 merge 1:1 folio using `Centers_2010_34center_temp'
@@ -1042,34 +1064,6 @@ on them not having distances*/
 // merge 1:1 folio using `Centers_2010_34center_temp'
 // rename _merge merge_centers34_2010
 
-*N_centers300_y2006_34_2012 dist_min_y2007_34_2012
-*merge 1:1 folio using `data_2012' //THIS IS VERY BAD, weird behavior 
-*drop _merge
-
-*Agregando los folios que no tienen coordenadas
-merge 1:1 folio using "$db/folios_sin_coordenadas"
-drop _merge
-
-foreach elpi_year in 2010 2012{
-foreach y in 2006 2007 2008 2009 2010 2011 2012 2013 2014{
-foreach x in 300 500 1000 5000{
-	foreach v in mat cap totmat totcap{
-	replace `v'`x'_y`y'_02_`elpi_year' = 0 if `v'`x'_y`y'_02_`elpi_year' == . & mis != 1 & N_centers`x'_y`y'_02_`elpi_year' == .
-	replace `v'`x'_y`y'_34_`elpi_year' = 0 if `v'`x'_y`y'_34_`elpi_year' == . & mis != 1 & N_centers`x'_y`y'_34_`elpi_year' == . //AH
-
-}
-	replace N_centers`x'_y`y'_`elpi_year'	 = 0 if N_centers`x'_y`y'_`elpi_year'    == . & mis != 1
-	replace N_centers`x'_y`y'_02_`elpi_year' = 0 if N_centers`x'_y`y'_02_`elpi_year' == . & mis != 1
-	replace N_centers`x'_y`y'_34_`elpi_year' = 0 if N_centers`x'_y`y'_34_`elpi_year' == . & mis != 1
-	
-	replace N_cen_cup`x'_y`y'_02_`elpi_year' = 0 if N_cen_cup`x'_y`y'_02_`elpi_year' == . & mis != 1
-	replace N_cen_cup`x'_y`y'_34_`elpi_year' = 0 if N_cen_cup`x'_y`y'_34_`elpi_year' == . & mis != 1
-
-}
-}
-}
-
-
 local close_2007 2010
 local close_2008 2010
 local close_2009 2010
@@ -1080,32 +1074,10 @@ local close_2013 2012
 local close_2014 2012
 
 gen 	min_center_toddler_34 = .
-foreach dist in 300 500 1000 5000{
-gen 	N_centers_toddler`dist'_34 = .
-gen 	mat_centers_toddler`dist'_34 = .
-gen		cap_centers_toddler`dist'_34 = .
-}
 
-foreach x in 02 34{
+foreach x in 34{
 gen 	min_center_`x' = .
-gen 	mat_min_`x' =  .
-gen 	cap_min_`x' =    .
-gen min_center_cupos_`x' = .
-gen 	satur_`x' =       .
-gen 	cap_weight_`x' = .
-gen 	satur_weight_`x' =   .
 gen 	min_center_pregnant_`x' = .
-
-foreach dist in 300 500 1000 5000{
-gen 	N_centers`dist'_`x'=.
-gen 	mat_centers`dist'_`x' = .
-gen 	cap_centers`dist'_`x' = .
-gen 	totmat_centers`dist'_`x' = .
-gen 	totcap_centers`dist'_`x' = .
-gen 	N_centers_cupos`dist'_`x'=.
-gen 	N_centers_pregnant`dist'_`x' = .
-gen 	mat_centers_pregnant`dist'_`x' = .
-gen 	cap_centers_pregnant`dist'_`x' = .
 
 foreach c in 2006 2007 2008 2009 2010 2011 2012 2013{
 
@@ -1113,125 +1085,52 @@ local yr_02 = `c'+1
 local yr_34 = `c'+3
 if `yr_34' >= 2014 local yr_34 = 2014
 
-*sacar a los q no tienen distancia de aca para q no se reemplacen tantas veces! poner los años afuera
-
-replace N_centers`dist'_`x'=N_centers`dist'_y`yr_`x''_`x'_`close_`yr_`x''' 	if cohort_school==`c'
-replace N_centers`dist'_`x'=N_centers`dist'_y`yr_`x''_`x'_2012 			if cohort_school==`c' & N_centers`dist'_`x'==. 
-replace N_centers`dist'_`x'=N_centers`dist'_y`yr_`x''_`x'_2010 			if cohort_school==`c' & N_centers`dist'_`x'==. 
-
+di "min_center"
 replace min_center_`x'=dist_min_y`yr_`x''_`x'_`close_`yr_`x''' 			if cohort_school==`c'
 replace min_center_`x'=dist_min_y`yr_`x''_`x'_2010 						if cohort_school==`c' & min_center_`x'==.
 replace min_center_`x'=dist_min_y`yr_`x''_`x'_2012 						if cohort_school==`c' & min_center_`x'==.
 
-replace mat_centers`dist'_`x'=mat`dist'_y`yr_`x''_`x'_`close_`yr_`x''' 	if cohort_school==`c'
-replace mat_centers`dist'_`x'=mat`dist'_y`yr_`x''_`x'_2012 				if cohort_school==`c' & mat_centers`dist'_`x'==. 
-replace mat_centers`dist'_`x'=mat`dist'_y`yr_`x''_`x'_2010 				if cohort_school==`c' & mat_centers`dist'_`x'==. 
-
-replace cap_centers`dist'_`x'=cap`dist'_y`yr_`x''_`x'_`close_`yr_`x''' 	if cohort_school==`c'
-replace cap_centers`dist'_`x'=cap`dist'_y`yr_`x''_`x'_2012 				if cohort_school==`c' & cap_centers`dist'_`x'==. 
-replace cap_centers`dist'_`x'=cap`dist'_y`yr_`x''_`x'_2010 				if cohort_school==`c' & cap_centers`dist'_`x'==. 
-
-replace totmat_centers`dist'_`x'=totmat`dist'_y`yr_`x''_`x'_`close_`yr_`x''' if cohort_school==`c'
-replace totmat_centers`dist'_`x'=totmat`dist'_y`yr_`x''_`x'_2012 			 if cohort_school==`c' & totmat_centers`dist'_`x'==. 
-replace totmat_centers`dist'_`x'=totmat`dist'_y`yr_`x''_`x'_2010 			 if cohort_school==`c' & totmat_centers`dist'_`x'==. 
-
-replace totcap_centers`dist'_`x'=totcap`dist'_y`yr_`x''_`x'_`close_`yr_`x''' 	if cohort_school==`c'
-replace totcap_centers`dist'_`x'=totcap`dist'_y`yr_`x''_`x'_2012 				if cohort_school==`c' & totcap_centers`dist'_`x'==. 
-replace totcap_centers`dist'_`x'=totcap`dist'_y`yr_`x''_`x'_2010 				if cohort_school==`c' & totcap_centers`dist'_`x'==. 
-
-replace mat_min_`x'=mat_min`yr_`x''_`x'_`close_`yr_`x''' 					if cohort_school==`c'
-replace mat_min_`x'=mat_min`yr_`x''_`x'_2010 								if cohort_school==`c' & mat_min_`x'==.
-replace mat_min_`x'=mat_min`yr_`x''_`x'_2012 								if cohort_school==`c' & mat_min_`x'==.
-
-replace cap_min_`x'=cap_min`yr_`x''_`x'_`close_`yr_`x''' 					if cohort_school==`c'
-replace cap_min_`x'=cap_min`yr_`x''_`x'_2010 								if cohort_school==`c' & cap_min_`x'==.
-replace cap_min_`x'=cap_min`yr_`x''_`x'_2012 								if cohort_school==`c' & cap_min_`x'==.
-
-replace min_center_cupos_`x'=dist_min_cupos_y`yr_`x''_`x'_`close_`yr_`x''' 	if cohort_school==`c'
-replace min_center_cupos_`x'=dist_min_cupos_y`yr_`x''_`x'_2010 				if cohort_school==`c' & min_center_cupos_`x'==.
-replace min_center_cupos_`x'=dist_min_cupos_y`yr_`x''_`x'_2012 				if cohort_school==`c' & min_center_cupos_`x'==.
-
-replace satur_`x'=sat_y`yr_`x''_`x'_`close_`yr_`x'''						if cohort_school==`c'
-replace satur_`x'=sat_y`yr_`x''_`x'_2010									if cohort_school==`c' & satur_`x'==.
-replace satur_`x'=sat_y`yr_`x''_`x'_2012									if cohort_school==`c' & satur_`x'==.
-
-replace cap_weight_`x'=cap_weight_y`yr_`x''_`x'_`close_`yr_`x'''			if cohort_school==`c'
-replace cap_weight_`x'=cap_weight_y`yr_`x''_`x'_2010						if cohort_school==`c'& cap_weight_`x'==.
-replace cap_weight_`x'=cap_weight_y`yr_`x''_`x'_2012						if cohort_school==`c'& cap_weight_`x'==.
-
-replace satur_weight_`x'=sat_weight_y`yr_`x''_`x'_`close_`yr_`x'''			if cohort_school==`c'
-replace satur_weight_`x'=sat_weight_y`yr_`x''_`x'_2010						if cohort_school==`c' & satur_weight_`x'==.
-replace satur_weight_`x'=sat_weight_y`yr_`x''_`x'_2012						if cohort_school==`c' & satur_weight_`x'==.
-
-replace N_centers_cupos`dist'_`x'=N_cen_cup`dist'_y`yr_`x''_`x'_`close_`yr_`x''' if cohort_school==`c'
-replace N_centers_cupos`dist'_`x'=N_cen_cup`dist'_y`yr_`x''_`x'_2012 			if cohort_school==`c' & N_centers_cupos`dist'_`x'==. 
-replace N_centers_cupos`dist'_`x'=N_cen_cup`dist'_y`yr_`x''_`x'_2010 			if cohort_school==`c' & N_centers_cupos`dist'_`x'==. 
-
 local yr_p_02 = `c'
 local yr_p_34 = `c'
 
+di "min_center_pregnant"
 replace min_center_pregnant_`x'=dist_min_y`yr_p_`x''_`x'_`close_`yr_`x''' 	if cohort_school==`c'
 replace min_center_pregnant_`x'=dist_min_y`yr_p_`x''_`x'_2010 				if cohort_school==`c' & min_center_pregnant_`x'==.
 replace min_center_pregnant_`x'=dist_min_y`yr_p_`x''_`x'_2012 				if cohort_school==`c' & min_center_pregnant_`x'==.
 
-replace N_centers_pregnant`dist'_`x'=N_centers`dist'_y`yr_p_`x''_`x'_`close_`yr_`x''' if cohort_school==`c'
-replace N_centers_pregnant`dist'_`x'=N_centers`dist'_y`yr_p_`x''_`x'_2012 			if cohort_school==`c' & N_centers_pregnant`dist'_`x'==. 
-replace N_centers_pregnant`dist'_`x'=N_centers`dist'_y`yr_p_`x''_`x'_2010 			if cohort_school==`c' & N_centers_pregnant`dist'_`x'==. 
-
-replace mat_centers_pregnant`dist'_`x'=mat`dist'_y`yr_p_`x''_`x'_`close_`yr_`x''' 	if cohort_school==`c'
-replace mat_centers_pregnant`dist'_`x'=mat`dist'_y`yr_p_`x''_`x'_2012 				if cohort_school==`c' & mat_centers_pregnant`dist'_`x'==. 
-replace mat_centers_pregnant`dist'_`x'=mat`dist'_y`yr_p_`x''_`x'_2010 				if cohort_school==`c' & mat_centers_pregnant`dist'_`x'==. 
-
-replace cap_centers_pregnant`dist'_`x'=cap`dist'_y`yr_p_`x''_`x'_`close_`yr_`x''' 	if cohort_school==`c'
-replace cap_centers_pregnant`dist'_`x'=cap`dist'_y`yr_p_`x''_`x'_2012 				if cohort_school==`c' & cap_centers_pregnant`dist'_`x'==. 
-replace cap_centers_pregnant`dist'_`x'=cap`dist'_y`yr_p_`x''_`x'_2010 				if cohort_school==`c' & cap_centers_pregnant`dist'_`x'==. 
-
+di "min_center_toddler_34"
 replace min_center_toddler_34=dist_min_y`yr_02'_34_`close_`yr_34'' 				if cohort_school==`c'
 replace min_center_toddler_34=dist_min_y`yr_02'_34_2010 						if cohort_school==`c' & min_center_toddler_34==.
 replace min_center_toddler_34=dist_min_y`yr_02'_34_2012 						if cohort_school==`c' & min_center_toddler_34==.
 
-replace N_centers_toddler`dist'_34=N_centers`dist'_y`yr_02'_34_`close_`yr_34''  if cohort_school==`c'
-replace N_centers_toddler`dist'_34=N_centers`dist'_y`yr_02'_34_2012 			if cohort_school==`c' & N_centers_toddler`dist'_34==. 
-replace N_centers_toddler`dist'_34=N_centers`dist'_y`yr_02'_34_2010 			if cohort_school==`c' & N_centers_toddler`dist'_34==. 
-
-replace mat_centers_toddler`dist'_34=mat`dist'_y`yr_02'_34_`close_`yr_34'' 		if cohort_school==`c'
-replace mat_centers_toddler`dist'_34=mat`dist'_y`yr_02'_34_2012 				if cohort_school==`c' & mat_centers_toddler`dist'_34==. 
-replace mat_centers_toddler`dist'_34=mat`dist'_y`yr_02'_34_2010 				if cohort_school==`c' & mat_centers_toddler`dist'_34==. 
-
-replace cap_centers_toddler`dist'_34=cap`dist'_y`yr_02'_34_`close_`yr_34'' 		if cohort_school==`c'
-replace cap_centers_toddler`dist'_34=cap`dist'_y`yr_02'_34_2012 				if cohort_school==`c' & cap_centers_toddler`dist'_34==. 
-replace cap_centers_toddler`dist'_34=cap`dist'_y`yr_02'_34_2010 				if cohort_school==`c' & cap_centers_toddler`dist'_34==. 
-
-}
 }
 }
 
-foreach x in 2006 2007 2008 2009 2010 2011 2012 2013 2014{
-foreach m in 300 500 1000 5000{
-	drop N_centers`m'_y`x'* cap`m'_y`x'* mat`m'_y`x'*
-}
-	drop mat_min`x'* cap_min`x'* cap_weight_y`x'*
-}
-	drop dist_min_* sat_* N_cen_cup*
+
+// foreach x in 2006 2007 2008 2009 2010 2011 2012 2013 2014{
+// foreach m in 300 500 1000 5000{
+// 	drop N_centers`m'_y`x'* cap`m'_y`x'* mat`m'_y`x'*
+// }
+// 	drop mat_min`x'* cap_min`x'* cap_weight_y`x'*
+// }
+	drop dist_min_* 
 
 
 
 ********************************************************************************
-*************************** * *VARIABLES* * ************************************
+**# *********************** * *VARIABLES* * ************************************
 ********************************************************************************
 
 tempfile data_elpi_aux
 save `data_elpi_aux'
 
-keep folio d1i* d1t* d2* d12* d13* d8* cohort* birth_year birth_month
-reshape long d1ia_ d1im_ d1ta_ d1tm_ d2_ d12_ d12t_ d13_ d8_, i(folio) j(order)
-tempfile hist_laboral
-save `hist_laboral'
+keep folio fecha_inicio_w_* fecha_termino_w_* d2* d12* d13* d8* cohort* birth_date
+reshape long fecha_inicio_w_ fecha_termino_w_  d2_ d12_ d12t_ d13_ d8_, i(folio) j(order)
+gen periodo = year(fecha_inicio_w)
 
-use "$db/dolar_anual.dta", clear
-rename periodo d1ia_ //se ocupa el dolar del ano inicio del trabajo.
-merge 1:m d1ia_ using `hist_laboral'
-drop if _merge == 1
+merge m:1 periodo using "$db/dolar_anual.dta" //se ocupa el dolar del ano inicio del trabajo.
+drop if _m == 2
+drop _merge 
 
 replace d12_ =  . if d12_ ==  99
 replace d13_ =  . if d13_ == 999
@@ -1252,8 +1151,10 @@ replace d12t_ = .       if d12t_ == 99
 replace d12_ = d12t_ if d12_ == .
 replace d12_ = 0 	 if d12_ == . & inrange(d2_,2,5)
 replace d13_ = 0 	 if d13_ == . & inrange(d2_,2,5)
+drop d12t_
 
 replace d12_ = d12_/dolar_obs //para entregar salarios en dolares. VER SI NECESITAMOS TAMBIEN EN PESOS
+label var d12_ "Monto en USD. Ingreso líquido mensual promedio"
 
 forvalues t=1/10{
 	gen ocu_t`t' = .
@@ -1274,20 +1175,24 @@ gen hours_w_t02 = .
 ************************************************************************************************************
 sort folio order
 *******Formatear fechas de inicio, fin y cumpleaños*****
-egen    job_s     = concat(d1ia_ d1im_)
-gen     job_start = date(job_s, "YM")
-replace job_start = . if job_s==".."
+// egen    job_s     = concat(d1ia_ d1im_)
+// gen     job_start = date(job_s, "YM")
+// replace job_start = . if job_s==".."
+//
+// egen    job_e     = concat(d1ta_ d1tm_)
+// gen     job_end   = date(job_e, "YM")
+// replace job_end   = . if job_e==".."
+// replace job_end   = job_end + 29 //to close the 30 day gap between periods
+//
+// egen bday_=concat(birth_year birth_month)
+// gen bday=date(bday_, "YM")
+// replace bday=. if bday_==".."
+//
+// drop job_s job_e bday_
 
-egen    job_e     = concat(d1ta_ d1tm_)
-gen     job_end   = date(job_e, "YM")
-replace job_end   = . if job_e==".."
-replace job_end   = job_end + 29 //to close the 30 day gap between periods
-
-egen bday_=concat(birth_year birth_month)
-gen bday=date(bday_, "YM")
-replace bday=. if bday_==".."
-
-drop job_s job_e bday_
+rename fecha_inicio_w_ job_start
+rename fecha_termino_w job_end
+rename birth_date bday 
 
 *------------------------------------------------------*
 *------------------NEW SEGMENTS------------------------*
@@ -1301,7 +1206,7 @@ gen weight_t`t'=.
 *bys folio: egen count_t`t'=count(tramo_t`t')
 }
 
-*Genero variables que me indiquen cuando debería inicial y terminar cada tramo (en fechas)
+*Genero variables que me indiquen cuando debería iniciar y terminar cada tramo (en fechas)
 {
 replace t1_start = bday           
 replace t1_end   = bday + (3*30)
@@ -1429,6 +1334,7 @@ forval t=1/10{
 	preserve
 }
 
+
 use `tramo_t1', clear
 merge 1:1 folio using `tramo_t2'
 rename _merge merge12
@@ -1454,10 +1360,11 @@ rename _merge merge10
 
 
 forvalues t=1/10{
-	replace d_work_t`t'=1 if d_work_t`t'>0&d_work_t`t'!=.	
+	replace d_work_t`t'=1 if d_work_t`t' > 0 & d_work_t`t'!=.	
 }
 
-merge 1:1 folio using `data_elpi_aux'
+merge 1:1 folio using `data_elpi_aux1'
+// use `data_elpi_aux1', clear
 drop _merge
 
 
@@ -1480,6 +1387,8 @@ replace income_t0 = monthly_Y_2012 if income_t0 == .
 replace income_t0 = monthly_Y_2017 if income_t0 == .
 
 *Gen Familia Elegible del jardin (income<=p60. Using p80)
+
+
 local p = 80
 _pctile income_t0, p(`p')
 gen elegible = (income_t0 <= r(r1))
