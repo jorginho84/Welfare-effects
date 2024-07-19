@@ -876,7 +876,7 @@ replace d_cc_34=dum_center67_2017 if d_cc_34==.
 label var d_cc_02 "Child goes to cc center in ages 0 to 2"
 label var d_cc_34 "Child goes to cc center in ages 3 to 4"
 
-drop d_cc_t*
+// drop d_cc_t*
 
 
 *------------------------------------------------------*
@@ -1009,14 +1009,14 @@ tempfile ELPI_Panel
 save `ELPI_Panel'
 
 save "$db/ELPI_Panel.dta", replace
-stp
+
 ********************************************************************************
 **# ************************ * *GEODATA* * *************************************
 ********************************************************************************
 
-// if `run_geo' == 1 {
-// 	qui: do "$code_dir/geodata.do"
-// }
+if `run_geo' == 1 {
+	qui: do "$code_dir/geodata.do"
+}
 
 
 *---------------------------------------------------*
@@ -1319,10 +1319,11 @@ forvalues t=1/2{
 gen lwage_baseline = ln(wage_baseline + 1)
 
 
-preserve
+// preserve
 **********************************************************************************
 
 forval t=1/10{
+	preserve
 	
 	keep folio d_work_t`t' wage_t`t' hours_w_t`t' weight_t`t'
 	collapse (sum) d_work_t`t' wage_t`t' hours_w_t`t' [pweight=weight_t`t'], by(folio)
@@ -1331,7 +1332,7 @@ forval t=1/10{
 	save `tramo_t`t''
 	
 	restore
-	preserve
+// 	preserve
 }
 
 
@@ -1363,22 +1364,22 @@ forvalues t=1/10{
 	replace d_work_t`t'=1 if d_work_t`t' > 0 & d_work_t`t'!=.	
 }
 
-merge 1:1 folio using `data_elpi_aux1'
-// use `data_elpi_aux1', clear
+merge 1:1 folio using `data_elpi_aux'
+// use `data_elpi_aux', clear
 drop _merge
 
 
 * Center in workplace 
 gen trab_aux = . 
 forval i = 1/35{
-	replace trab_aux = d2_`i' if d1ia_`i' <= birth_year & d1ta_`i' >= birth_year
+	replace trab_aux = d2_`i' if year(fecha_inicio_w_`i') <= birth_year & year(fecha_termino_w_`i') >= birth_year
 }
 	gen care_aux1 = (trab_aux == 1 & care_at_work1_2012 == 1) 
 	replace care_aux1 = . if care_at_work1_2012 == .
 	gen care_aux2 = (trab_aux == 1 & care_at_work2_2012 == 1)
 	replace care_aux2 = . if care_at_work1_2012 == .
 tab care_aux1
-drop d1i* d1t* d2* d12* d13* 
+drop fecha_inicio_w* fecha_termino_w* d2* d12* d13* 
 
 
 
@@ -1386,9 +1387,22 @@ gen income_t0 = monthly_Y_2010
 replace income_t0 = monthly_Y_2012 if income_t0 == .
 replace income_t0 = monthly_Y_2017 if income_t0 == .
 
+gen percentile_income_h = percentile_income_h_2010 if birth_year <= 2008 //Percentil de ingreso a la edad 2 años (momento de postulación)
+replace percentile_income_h = percentile_income_h_2012 if inrange(birth_year,2009,2010)
+replace percentile_income_h = percentile_income_h_2017 if birth_year >= 2011
+replace percentile_income_h = percentile_income_h_2010 if percentile_income_h == .
+replace percentile_income_h = percentile_income_h_2012 if percentile_income_h == .
+replace percentile_income_h = percentile_income_h_2017 if percentile_income_h == .
+
+gen elegible_p60 = (percentile_income_h <= 60)
+replace elegible_p60 = . if percentile_income_h == .
+gen elegible_p80 = (percentile_income_h <= 80)
+replace elegible_p80 = . if percentile_income_h == .
+label var elegible_p60 "Less than percentile 60 of income at 2 years old"
+label var elegible_p80 "Less than percentile 80 of income at 2 years old"
+
+
 *Gen Familia Elegible del jardin (income<=p60. Using p80)
-
-
 local p = 80
 _pctile income_t0, p(`p')
 gen elegible = (income_t0 <= r(r1))
@@ -1412,11 +1426,11 @@ replace aux_public`i'=aux_public`i'_2012 if aux_public`i'!=1
 }
 
 *Gen public_ "1 si asiste a un centro publico, 0 si no o si va a uno privado"
-egen public_02=rowtotal(aux_public1 aux_public2 aux_public3 aux_public4 aux_public5)
-replace public_02=. if aux_public1==. & aux_public2==. & aux_public3==. & aux_public4==. & aux_public5==.
-replace public_02=1 if public_02>=1 & public_02!=.
-replace public_02=0 if d_cc_02==0 //0 sino asisten a ningun centro
-tab public_02, m
+// egen public_02=rowtotal(aux_public1 aux_public2 aux_public3 aux_public4 aux_public5)
+// replace public_02=. if aux_public1==. & aux_public2==. & aux_public3==. & aux_public4==. & aux_public5==.
+// replace public_02=1 if public_02>=1 & public_02!=.
+// replace public_02=0 if d_cc_02==0 //0 sino asisten a ningun centro
+// tab public_02, m
 
 egen public_34=rowtotal(aux_public6 aux_public7)
 replace public_34=. if aux_public6==. & aux_public7==.
@@ -1426,7 +1440,7 @@ tab public_34, m
 
 drop aux_public*
 
-label var public_02 "Participation in public center at age 0-2"
+// label var public_02 "Participation in public center at age 0-2"
 label var public_34 "Participation in public center at age 3-4"
 
 *Imputar region
@@ -1453,55 +1467,40 @@ replace comuna_cod_2=131 if comuna_cod_2==13 & (inrange(comuna_cod,13102, 13132)
 label var comuna_cod_2 "Comune group"
 
 *Gen min_center_02_p5 "Quintil de distancia"
-xtile min_center_02_p5 = min_center_02 , n(5)
+// xtile min_center_02_p5 = min_center_02 , n(5)
 xtile min_center_34_p5 = min_center_34 , n(5)
-label var min_center_02_p5 "Quintile"
+// label var min_center_02_p5 "Quintile"
 label var min_center_34_p5 "Quintile"
 
 *Gen min_center_02_p10 "Decil de distancia"
-xtile min_center_02_p10 = min_center_02 , n(10)
+// xtile min_center_02_p10 = min_center_02 , n(10)
 xtile min_center_34_p10 = min_center_34 , n(10)
-label var min_center_02_p10 "Decil de distancia"
+// label var min_center_02_p10 "Decil de distancia"
 label var min_center_34_p10 "Decil de distancia"
 
 *Gen min_center_02_p100 "Percentil de distancia"
-xtile min_center_02_p100 = min_center_02 , n(100)
+// xtile min_center_02_p100 = min_center_02 , n(100)
 xtile min_center_34_p100 = min_center_34 , n(100)
-label var min_center_02_p100 "Percentil de distancia"
+// label var min_center_02_p100 "Percentil de distancia"
 label var min_center_34_p100 "Percentil de distancia"
 
 *Married
-gen 	married02 = married 
-replace married02 = married_2010 if birth_year <= 2010 & married_2010 != . 
-replace married02 = married_2012 if inrange(birth_year,2010,2012) & married_2012 != .
-replace married02 = married_2017 if inrange(birth_year,2013,2014) & married_2017 != .
+// gen 	married02 = married 
+// replace married02 = married_2010 if birth_year <= 2010 & married_2010 != . 
+// replace married02 = married_2012 if inrange(birth_year,2010,2012) & married_2012 != .
+// replace married02 = married_2017 if inrange(birth_year,2013,2014) & married_2017 != .
 
 gen 	married34 = married 
-replace married34 = married_2010 if birth_year <= 2010 & married_2010 != . 
+replace married34 = married_2010 if birth_year <= 2008 & married_2010 != . 
 replace married34 = married_2012 if inrange(birth_year,2009,2010) & married_2012 != .
 replace married34 = married_2017 if inrange(birth_year,2011,2014) & married_2017 != .
 
 ****Variables de Jorge
 replace min_center_34 = min_center_34/1000
-replace min_center_02 = min_center_02/1000
-replace min_center_pregnant_02 = min_center_pregnant_02/1000
+// replace min_center_02 = min_center_02/1000
+// replace min_center_pregnant_02 = min_center_pregnant_02/1000
 replace min_center_pregnant_34 = min_center_pregnant_34/1000
 
-*Dummy for one center within X kms
-foreach kms in 300 500 1000{
-	gen d_onec_`kms'_02 = N_centers`kms'_02	>= 1
-	gen d_onec_`kms'_34 = N_centers`kms'_34	>= 1
-
-	replace d_onec_`kms'_02 = . if N_centers`kms'_02 == .
-	replace d_onec_`kms'_34 = . if N_centers`kms'_34 == .
-}
-
-*Dummy for closest center within 1 km 
-foreach age in 02 34{
-	gen onekm_`age' = min_center_`age' <= 1
-	replace onekm_`age' = . if min_center_`age' == .
-
-}
 
 *Tests
 foreach variable in "TVIP_t" "CBCL2_t" "CBCL1_t" "BATTELLE_t"{
@@ -1518,9 +1517,9 @@ foreach variable in "TVIP_t" "CBCL_t" "BATTELLE_t"{
 }
 
 gen d_cc_02_34 = d_cc_02*d_cc_34
-gen min_center_02_mat_centers1000_34 = min_center_02*mat_centers1000_34
-gen min_center_02_34 = min_center_02*min_center_34
-gen N_centers300_34_02 = N_centers300_02*N_centers300_34
+// gen min_center_02_mat_centers1000_34 = min_center_02*mat_centers1000_34
+// gen min_center_02_34 = min_center_02*min_center_34
+// gen N_centers300_34_02 = N_centers300_02*N_centers300_34
 
 
 gen d_cc = (d_cc_02 == 1) | (d_cc_34 == 1)
@@ -1528,22 +1527,22 @@ replace d_cc = . if (d_cc_02 == .) | (d_cc_34 == .)
 
 *Diff in diff variables
 *Dummy 1 for increase in local availability (baseline 
-gen delta_min_02 = min_center_02 - min_center_pregnant_02
+// gen delta_min_02 = min_center_02 - min_center_pregnant_02
 gen delta_min_34 = min_center_34 - min_center_pregnant_34
 
-gen delta_N_centers1000_02 = N_centers1000_02 - N_centers_pregnant1000_02
-gen delta_N_centers1000_34 = N_centers1000_34 - N_centers_pregnant1000_34
+// gen delta_N_centers1000_02 = N_centers1000_02 - N_centers_pregnant1000_02
+// gen delta_N_centers1000_34 = N_centers1000_34 - N_centers_pregnant1000_34
 
 
-gen d_treated_02 = delta_N_centers1000_02 > 0
-replace d_treated_02 = . if delta_N_centers1000_02 == .
+// gen d_treated_02 = delta_N_centers1000_02 > 0
+// replace d_treated_02 = . if delta_N_centers1000_02 == .
 
-gen d_treated_34 = delta_N_centers1000_34 > 0
-replace d_treated_34 = . if delta_N_centers1000_34 == .
+// gen d_treated_34 = delta_N_centers1000_34 > 0
+// replace d_treated_34 = . if delta_N_centers1000_34 == .
 
 
-gen d_treated = d_treated_02 == 1 | d_treated_34 == 1
-replace d_treated = . if d_treated_02 == . | d_treated_34 == .
+// gen d_treated = d_treated_02 == 1 | d_treated_34 == 1
+// replace d_treated = . if d_treated_02 == . | d_treated_34 == .
 
 
 gen d_c_exposed = cohort_school<=2009
@@ -1575,57 +1574,32 @@ label var WAIS_t_vo "WAIS. Puntaje T Vocabulary"
 
 forval i = 1/7 {
 label var d_cc_t`i' "Participation in tramo `i'"
-label var d_cc_t`i'_v2 "Participation in tramo `i' (more restrictive)"
+// label var d_cc_t`i'_v2 "Participation in tramo `i' (more restrictive)"
 }
-foreach i in "02" "34" {
+foreach i in "34" {
 label var married`i' "Married/Cohabiting at age `i'"
 label var d_cc_`i' "Participation at ages `i'"
-label var d_cc_`i'_v2 "Participation at ages `i' (more restrictive)"
+// label var d_cc_`i'_v2 "Participation at ages `i' (more restrictive)"
 label var min_center_`i' "Distance to the nearest center at age `i'"
-label var min_center_cupos_`i' "Distance to the nearest center with space at age `i'"
-label var cap_min_`i' "Capacity of the nearest center at age `i'"
-label var cap_weight_`i' "Weighted average of the capacity of the centers at age `i'"
-label var mat_min_`i' "Enrollment of the nearest center at age `i'"
-foreach m in 300 500 1000 5000{
-label var N_centers`m'_`i' "Number of centers on a `m'mt radius at age `i'"
-label var N_centers_cupos`m'_`i' "Number of centers with space on a `m'mt radius at age `i'"
-label var cap_centers`m'_`i' "Average capacity of the centers on a `m'mt radius at age `i'"
-label var mat_centers`m'_`i' "Average enrollment of the centers on a `m'mt radius at age `i'"
+// label var min_center_cupos_`i' "Distance to the nearest center with space at age `i'"
+// label var cap_min_`i' "Capacity of the nearest center at age `i'"
+// label var cap_weight_`i' "Weighted average of the capacity of the centers at age `i'"
+// label var mat_min_`i' "Enrollment of the nearest center at age `i'"
+foreach p in 20 40 50 70{
+	label var d_cc_`i'_p`p' "Participation at ages `i' (at least `p'% of the time)"
 }
 }
 
-drop  d3_* d10_* tot*_y* h1_2017 comuna_lab_* comuna_size big_comuna 
+drop  d3_* d10_* /*tot*_y**/ h1_2017 comuna_lab_* comuna_size big_comuna 
 
 
 order folio cohort_school birth_year region* *comuna* FE* fexp_* ///
 wage* edad_meses* tot_sib* dum_sibl* dum_young* f_home* married* n_integrantes* ///
 m_age f_educ* m_educ* f_sch* gender* m_sch* dum_work* monthly_Y* d_work* elegible* ///
 dum_smoke* dum_alc* PESO_* TALLA_* q_control* ///
-dum_center* d_cc_* public* min_center_* N_centers* cap_* mat_* totc* totm* ///
+dum_center* d_cc_* public* min_center_* /*N_centers* cap_* mat_* totc* totm**/ ///
 BATTELLE* TVIP* ASQ* CBCL* WAIS_t* risk 
 
-
-
-*Variabes de centros cerca
-gen tiene_centro02_300 = 1 if N_centers300_02 > 0 & N_centers300_02 != .
-replace tiene_centro02_300 = 0 if N_centers300_02 == 0
-gen tiene_centro34_300 = 1 if N_centers300_34 > 0 & N_centers300_34 != .
-replace tiene_centro34_300 = 0 if N_centers300_34 == 0
-
-gen tiene_centro02_500 = 1 if N_centers500_02 > 0 & N_centers500_02 != .
-replace tiene_centro02_500 = 0 if N_centers500_02 == 0
-gen tiene_centro34_500 = 1 if N_centers500_34 > 0 & N_centers500_34 != .
-replace tiene_centro34_500 = 0 if N_centers500_34 == 0
-
-gen tiene_centro02_1000 = 1 if N_centers1000_02 > 0 & N_centers1000_02 != .
-replace tiene_centro02_1000 = 0 if N_centers1000_02 == 0
-gen tiene_centro34_1000 = 1 if N_centers1000_34 > 0 & N_centers1000_34 != .
-replace tiene_centro34_1000 = 0 if N_centers1000_34 == 0
-
-gen tiene_centro02_5000 = 1 if N_centers5000_02 > 0 & N_centers5000_02 != .
-replace tiene_centro02_5000 = 0 if N_centers5000_02 == 0
-gen tiene_centro34_5000 = 1 if N_centers5000_34 > 0 & N_centers5000_34 != .
-replace tiene_centro34_5000 = 0 if N_centers5000_34 == 0
 
 
 *-----------------------------------------------------------------------------*
@@ -1668,7 +1642,7 @@ forvalues j=11/15{
 
 
 *----------------------------------------------------------------------------*
-*----------------------------TESTS AGE SEGMENTS------------------------------*
+**# -------------------------TESTS AGE SEGMENTS------------------------------*
 *----------------------------------------------------------------------------*
 
 *-----------------------*
