@@ -37,11 +37,11 @@ else if "`user'"=="Antonia"{
 }
 
 if "`user'" == "Cec"{
-	global des		"C:\Users\Cecilia\Mi unidad\Uandes\Jardines_elpi"
+	global des		"G:\Mi unidad\Uandes\Jardines_elpi"
 	cd "$des"
 	global db 		"$des/Data"
 // 	global results 	"$des/results"
-	global codes 	"C:\Users\Cecilia\Documents\GitHub\Welfare-effects"
+	global codes 	"C:\Users\ccorrea\OneDrive - Universidad de los Andes\Documentos\GitHub\Welfare-effects"
 // 	global code_dir	"$des"
 }
 
