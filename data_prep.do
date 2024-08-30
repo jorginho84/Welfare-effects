@@ -481,19 +481,20 @@ use "$db/elpi_original/Historia_Laboral_2012", clear
 keep folio orden d1i* d1t*  d2 d3 d10 d12* d13 d8
 
 egen fecha_inicio_aux = concat(d1ia d1im)
-gen fecha_inicio_w = date(fecha_inicio_aux, "YM")
+gen job_start = date(fecha_inicio_aux, "YM")
 egen fecha_termino_aux = concat(d1ta d1tm)
-gen fecha_termino_w = date(fecha_termino_aux, "YM")
+gen job_end = date(fecha_termino_aux, "YM")
+replace job_end = job_end + 29
 drop fecha*_aux d1i* d1t*
 
 rename * *_
 rename folio_ folio
 rename orden_ orden
 
-bys folio: egen fecha_entrevista_2012 = max(fecha_termino_w)
+bys folio: egen fecha_entrevista_2012 = max(job_end)
 
-reshape wide fecha_inicio* fecha_termino* d2_ d3_ d10_ d12_ d12t_ d13_ d8, i(folio) j(orden)
-format fecha_inicio_w* fecha_termino_w* fecha_entrevista_2012 %td
+reshape wide job_start_ job_end_ d2_ d3_ d10_ d12_ d12t_ d13_ d8, i(folio) j(orden)
+format job_start_* job_end_* fecha_entrevista_2012 %td
 replace fecha_entrevista_2012 = date("01jul2012","DMY") if fecha_entrevista_2012 <= date("01apr2012","DMY") //Se reemplaza por fecha mediana
 
 merge 1:1 folio using `householdsb_aux'
@@ -505,7 +506,7 @@ drop merge_hogar merge_cuidado merge_historia
 rename * *_2012
 rename folio_2012 folio
 
-rename (fecha_entrevista_2012_ fecha_inicio*_2012 fecha_termino*_2012) (fecha_entrevista_2012 fecha_inicio* fecha_termino*)
+rename (fecha_entrevista_2012_ job_start*_2012 job_end*_2012) (fecha_entrevista_2012 job_start* job_end*)
 rename (d2*_2012 d3*_2012 d10*_2012 d12*_2012 d13*_2012 d8*_2012) (d2* d3* d10* d12* d13* d8*)
 
 merge 1:1 folio using `Data2010.dta'
@@ -613,9 +614,7 @@ label var dum_sibling_part "1 if child's young sibling(s) goes to cc (P-K or low
 	replace ESC = 18 			if ESC >= 19 & !missing(ESC) 
 	replace ESC = e4_curso+17 	if inlist(e4,16,17) // Postgrado. Ojo con e4_curso (5-10)
 	replace ESC = 21 			if ESC > 21 & !missing(ESC)	
-	replace ESC = . 			if missing(e4)
-	//Missings are . in this dataset
-	
+	replace ESC = . 			if missing(e4) //Missings are . in this dataset
 	*Se corrigen los missing
 	replace ESC = 12 if e4 == 12 & missing(ESC)
 	replace ESC = 14 if e4 == 13 & missing(ESC)
@@ -781,10 +780,10 @@ tempfile db2017eval
 rename * *_2017
 rename folio_2017 folio
 
-// merge 1:1 folio using `Data2012_2010.dta'
-merge 1:1 folio using "$db/ELPI_Panel.dta"
+merge 1:1 folio using `Data2012_2010.dta'
+// merge 1:1 folio using "$db/ELPI_Panel.dta"
 rename _merge merge_2010_2012_2017
-stp
+
 
 *-----------------------------------------*
 *---Birth year and month; School cohort---*
@@ -801,7 +800,10 @@ replace birth_year = 2017 - floor(edad_mesesr_2017/12) if birth_year == .
 replace birth_year = 2006 if birth_year < 2006 //11 datos
 
 replace birth_month = 12 - (edad_meses_2010 - floor(edad_meses_2010/12)*12) if birth_month ==. 
-replace birth_month = 12 - (edad_mesesr_2017 - floor(edad_mesesr_2017/12)*12) if birth_month ==. 
+replace birth_month = 12 - (edad_mesesr_2017 - floor(edad_mesesr_2017/12)*12) if birth_month ==.
+
+egen bday_=concat(birth_year birth_month)
+gen bday=date(bday_, "YM") 
 
 gen cohort = birth_year
 
@@ -907,6 +909,8 @@ replace d_cc_34_v2=dum_center67_2017 if d_cc_34_v2==.
 label var d_cc_02_v2 "Child goes to cc center in ages 0 to 2, 20% of the time or more"
 label var d_cc_34_v2 "Child goes to cc center in ages 3 to 4, 20% of the time or more"
 
+drop dum_center*_2010 dum_center*_2012 dum_center*_2017
+
 *------------------------------------------------------*
 *-------------Was there a center nearby?---------------*
 *------------------------------------------------------*
@@ -934,6 +938,8 @@ label var cc_near_02 "1 if there was a center nearby at ages 0-2"
 label var cc_near_34 "1 if there was a center nearby at ages 3-4"
 label var cc_near_3 "1 if there was a center nearby at age 3"
 
+drop cc_near*_2010 cc_near*_2012 cc_near*_2017
+
 
 *---------------------------------------------*
 *----------Tests across three rounds----------*
@@ -951,18 +957,20 @@ replace test_year = 2010 if test != . & test_year == .
 label var test "test BATELLE"
 label var test_year "Año de aplicación test BATELLE"
 
+// drop BATTELLE_t_2010 BATTELLE_t_2012 BATTELLE_t_2017
 
 *------------------------------------------------*
 *----------Controls across three rounds----------*
 *------------------------------------------------*
 
 local precontrols m_sch m_educ f_home f_sch f_educ preg_control dum_smoke dum_alc gender dum_sano m_age dum_siblings tot_sib dum_young_siblings married 
-// Father at home debería ser considerado a la edad de 34? o el primer dato que tengamos?
+// Father at home debería ser considerado a la edad de 34?
 foreach var in `precontrols'{
     di "`var'"
 gen `var'=`var'_2010
 replace `var'=`var'_2012 if `var'==.
 replace `var'=`var'_2017 if `var'==.
+drop `var'_2010 `var'_2012 `var'_2017
 }
 
 foreach var in comuna_cod WAIS_t_num WAIS_t_vo {
@@ -981,16 +989,19 @@ forvalues t=1/8{
 	gen dum_work_t9  = dum_work9_2012
 	gen dum_work_t10 = dum_work10_2012
 
+drop dum_work*_2010 dum_work*_2012 dum_work*_2017	
+	
 egen risk=rowmean(preg_control dum_smoke dum_alc dum_sano)
 // sum  risk m_sch f_home m_age dum_siblings comuna_cod WAIS_t_num WAIS_t_vo
 
 tempfile ELPI_Panel
 save `ELPI_Panel'
 
-*save "$db/ELPI_Panel.dta", replace
+save "$db/ELPI_Panel.dta", replace
+st
 
 ********************************************************************************
-**************************** * *GEODATA* * *************************************
+**# ************************ * *GEODATA* * *************************************
 ********************************************************************************
 
 // if `run_geo' == 1 {
@@ -1016,7 +1027,7 @@ foreach elpi_year in 2010 2012{
 	}
 }
 
-use `ELPI_Panel', clear //23245 obs
+use "$db/ELPI_Panel.dta", clear //23245 obs
 merge 1:1 folio using `Centers_2012_34center_temp'
 rename _merge merge_centers34_2012
 merge 1:1 folio using `Centers_2010_34center_temp'
@@ -1046,29 +1057,6 @@ on them not having distances*/
 *merge 1:1 folio using `data_2012' //THIS IS VERY BAD, weird behavior 
 *drop _merge
 
-*Agregando los folios que no tienen coordenadas
-merge 1:1 folio using "$db/folios_sin_coordenadas"
-drop _merge
-
-foreach elpi_year in 2010 2012{
-foreach y in 2006 2007 2008 2009 2010 2011 2012 2013 2014{
-foreach x in 300 500 1000 5000{
-	foreach v in mat cap totmat totcap{
-	replace `v'`x'_y`y'_02_`elpi_year' = 0 if `v'`x'_y`y'_02_`elpi_year' == . & mis != 1 & N_centers`x'_y`y'_02_`elpi_year' == .
-	replace `v'`x'_y`y'_34_`elpi_year' = 0 if `v'`x'_y`y'_34_`elpi_year' == . & mis != 1 & N_centers`x'_y`y'_34_`elpi_year' == . //AH
-
-}
-	replace N_centers`x'_y`y'_`elpi_year'	 = 0 if N_centers`x'_y`y'_`elpi_year'    == . & mis != 1
-	replace N_centers`x'_y`y'_02_`elpi_year' = 0 if N_centers`x'_y`y'_02_`elpi_year' == . & mis != 1
-	replace N_centers`x'_y`y'_34_`elpi_year' = 0 if N_centers`x'_y`y'_34_`elpi_year' == . & mis != 1
-	
-	replace N_cen_cup`x'_y`y'_02_`elpi_year' = 0 if N_cen_cup`x'_y`y'_02_`elpi_year' == . & mis != 1
-	replace N_cen_cup`x'_y`y'_34_`elpi_year' = 0 if N_cen_cup`x'_y`y'_34_`elpi_year' == . & mis != 1
-
-}
-}
-}
-
 
 local close_2007 2010
 local close_2008 2010
@@ -1080,32 +1068,32 @@ local close_2013 2012
 local close_2014 2012
 
 gen 	min_center_toddler_34 = .
-foreach dist in 300 500 1000 5000{
-gen 	N_centers_toddler`dist'_34 = .
-gen 	mat_centers_toddler`dist'_34 = .
-gen		cap_centers_toddler`dist'_34 = .
-}
+// foreach dist in 300 500 1000 5000{
+// gen 	N_centers_toddler`dist'_34 = .
+// gen 	mat_centers_toddler`dist'_34 = .
+// gen		cap_centers_toddler`dist'_34 = .
+// }
 
-foreach x in 02 34{
+foreach x in /*02*/ 34{
 gen 	min_center_`x' = .
-gen 	mat_min_`x' =  .
-gen 	cap_min_`x' =    .
-gen min_center_cupos_`x' = .
-gen 	satur_`x' =       .
-gen 	cap_weight_`x' = .
-gen 	satur_weight_`x' =   .
+// gen 	mat_min_`x' =  .
+// gen 	cap_min_`x' =    .
+// gen min_center_cupos_`x' = .
+// gen 	satur_`x' =       .
+// gen 	cap_weight_`x' = .
+// gen 	satur_weight_`x' =   .
 gen 	min_center_pregnant_`x' = .
 
-foreach dist in 300 500 1000 5000{
-gen 	N_centers`dist'_`x'=.
-gen 	mat_centers`dist'_`x' = .
-gen 	cap_centers`dist'_`x' = .
-gen 	totmat_centers`dist'_`x' = .
-gen 	totcap_centers`dist'_`x' = .
-gen 	N_centers_cupos`dist'_`x'=.
-gen 	N_centers_pregnant`dist'_`x' = .
-gen 	mat_centers_pregnant`dist'_`x' = .
-gen 	cap_centers_pregnant`dist'_`x' = .
+// foreach dist in 300 500 1000 5000{
+// gen 	N_centers`dist'_`x'=.
+// gen 	mat_centers`dist'_`x' = .
+// gen 	cap_centers`dist'_`x' = .
+// gen 	totmat_centers`dist'_`x' = .
+// gen 	totcap_centers`dist'_`x' = .
+// gen 	N_centers_cupos`dist'_`x'=.
+// gen 	N_centers_pregnant`dist'_`x' = .
+// gen 	mat_centers_pregnant`dist'_`x' = .
+// gen 	cap_centers_pregnant`dist'_`x' = .
 
 foreach c in 2006 2007 2008 2009 2010 2011 2012 2013{
 
@@ -1115,57 +1103,57 @@ if `yr_34' >= 2014 local yr_34 = 2014
 
 *sacar a los q no tienen distancia de aca para q no se reemplacen tantas veces! poner los años afuera
 
-replace N_centers`dist'_`x'=N_centers`dist'_y`yr_`x''_`x'_`close_`yr_`x''' 	if cohort_school==`c'
-replace N_centers`dist'_`x'=N_centers`dist'_y`yr_`x''_`x'_2012 			if cohort_school==`c' & N_centers`dist'_`x'==. 
-replace N_centers`dist'_`x'=N_centers`dist'_y`yr_`x''_`x'_2010 			if cohort_school==`c' & N_centers`dist'_`x'==. 
+// replace N_centers`dist'_`x'=N_centers`dist'_y`yr_`x''_`x'_`close_`yr_`x''' 	if cohort_school==`c'
+// replace N_centers`dist'_`x'=N_centers`dist'_y`yr_`x''_`x'_2012 			if cohort_school==`c' & N_centers`dist'_`x'==. 
+// replace N_centers`dist'_`x'=N_centers`dist'_y`yr_`x''_`x'_2010 			if cohort_school==`c' & N_centers`dist'_`x'==. 
 
 replace min_center_`x'=dist_min_y`yr_`x''_`x'_`close_`yr_`x''' 			if cohort_school==`c'
 replace min_center_`x'=dist_min_y`yr_`x''_`x'_2010 						if cohort_school==`c' & min_center_`x'==.
 replace min_center_`x'=dist_min_y`yr_`x''_`x'_2012 						if cohort_school==`c' & min_center_`x'==.
 
-replace mat_centers`dist'_`x'=mat`dist'_y`yr_`x''_`x'_`close_`yr_`x''' 	if cohort_school==`c'
-replace mat_centers`dist'_`x'=mat`dist'_y`yr_`x''_`x'_2012 				if cohort_school==`c' & mat_centers`dist'_`x'==. 
-replace mat_centers`dist'_`x'=mat`dist'_y`yr_`x''_`x'_2010 				if cohort_school==`c' & mat_centers`dist'_`x'==. 
-
-replace cap_centers`dist'_`x'=cap`dist'_y`yr_`x''_`x'_`close_`yr_`x''' 	if cohort_school==`c'
-replace cap_centers`dist'_`x'=cap`dist'_y`yr_`x''_`x'_2012 				if cohort_school==`c' & cap_centers`dist'_`x'==. 
-replace cap_centers`dist'_`x'=cap`dist'_y`yr_`x''_`x'_2010 				if cohort_school==`c' & cap_centers`dist'_`x'==. 
-
-replace totmat_centers`dist'_`x'=totmat`dist'_y`yr_`x''_`x'_`close_`yr_`x''' if cohort_school==`c'
-replace totmat_centers`dist'_`x'=totmat`dist'_y`yr_`x''_`x'_2012 			 if cohort_school==`c' & totmat_centers`dist'_`x'==. 
-replace totmat_centers`dist'_`x'=totmat`dist'_y`yr_`x''_`x'_2010 			 if cohort_school==`c' & totmat_centers`dist'_`x'==. 
-
-replace totcap_centers`dist'_`x'=totcap`dist'_y`yr_`x''_`x'_`close_`yr_`x''' 	if cohort_school==`c'
-replace totcap_centers`dist'_`x'=totcap`dist'_y`yr_`x''_`x'_2012 				if cohort_school==`c' & totcap_centers`dist'_`x'==. 
-replace totcap_centers`dist'_`x'=totcap`dist'_y`yr_`x''_`x'_2010 				if cohort_school==`c' & totcap_centers`dist'_`x'==. 
-
-replace mat_min_`x'=mat_min`yr_`x''_`x'_`close_`yr_`x''' 					if cohort_school==`c'
-replace mat_min_`x'=mat_min`yr_`x''_`x'_2010 								if cohort_school==`c' & mat_min_`x'==.
-replace mat_min_`x'=mat_min`yr_`x''_`x'_2012 								if cohort_school==`c' & mat_min_`x'==.
-
-replace cap_min_`x'=cap_min`yr_`x''_`x'_`close_`yr_`x''' 					if cohort_school==`c'
-replace cap_min_`x'=cap_min`yr_`x''_`x'_2010 								if cohort_school==`c' & cap_min_`x'==.
-replace cap_min_`x'=cap_min`yr_`x''_`x'_2012 								if cohort_school==`c' & cap_min_`x'==.
-
-replace min_center_cupos_`x'=dist_min_cupos_y`yr_`x''_`x'_`close_`yr_`x''' 	if cohort_school==`c'
-replace min_center_cupos_`x'=dist_min_cupos_y`yr_`x''_`x'_2010 				if cohort_school==`c' & min_center_cupos_`x'==.
-replace min_center_cupos_`x'=dist_min_cupos_y`yr_`x''_`x'_2012 				if cohort_school==`c' & min_center_cupos_`x'==.
-
-replace satur_`x'=sat_y`yr_`x''_`x'_`close_`yr_`x'''						if cohort_school==`c'
-replace satur_`x'=sat_y`yr_`x''_`x'_2010									if cohort_school==`c' & satur_`x'==.
-replace satur_`x'=sat_y`yr_`x''_`x'_2012									if cohort_school==`c' & satur_`x'==.
-
-replace cap_weight_`x'=cap_weight_y`yr_`x''_`x'_`close_`yr_`x'''			if cohort_school==`c'
-replace cap_weight_`x'=cap_weight_y`yr_`x''_`x'_2010						if cohort_school==`c'& cap_weight_`x'==.
-replace cap_weight_`x'=cap_weight_y`yr_`x''_`x'_2012						if cohort_school==`c'& cap_weight_`x'==.
-
-replace satur_weight_`x'=sat_weight_y`yr_`x''_`x'_`close_`yr_`x'''			if cohort_school==`c'
-replace satur_weight_`x'=sat_weight_y`yr_`x''_`x'_2010						if cohort_school==`c' & satur_weight_`x'==.
-replace satur_weight_`x'=sat_weight_y`yr_`x''_`x'_2012						if cohort_school==`c' & satur_weight_`x'==.
-
-replace N_centers_cupos`dist'_`x'=N_cen_cup`dist'_y`yr_`x''_`x'_`close_`yr_`x''' if cohort_school==`c'
-replace N_centers_cupos`dist'_`x'=N_cen_cup`dist'_y`yr_`x''_`x'_2012 			if cohort_school==`c' & N_centers_cupos`dist'_`x'==. 
-replace N_centers_cupos`dist'_`x'=N_cen_cup`dist'_y`yr_`x''_`x'_2010 			if cohort_school==`c' & N_centers_cupos`dist'_`x'==. 
+// replace mat_centers`dist'_`x'=mat`dist'_y`yr_`x''_`x'_`close_`yr_`x''' 	if cohort_school==`c'
+// replace mat_centers`dist'_`x'=mat`dist'_y`yr_`x''_`x'_2012 				if cohort_school==`c' & mat_centers`dist'_`x'==. 
+// replace mat_centers`dist'_`x'=mat`dist'_y`yr_`x''_`x'_2010 				if cohort_school==`c' & mat_centers`dist'_`x'==. 
+//
+// replace cap_centers`dist'_`x'=cap`dist'_y`yr_`x''_`x'_`close_`yr_`x''' 	if cohort_school==`c'
+// replace cap_centers`dist'_`x'=cap`dist'_y`yr_`x''_`x'_2012 				if cohort_school==`c' & cap_centers`dist'_`x'==. 
+// replace cap_centers`dist'_`x'=cap`dist'_y`yr_`x''_`x'_2010 				if cohort_school==`c' & cap_centers`dist'_`x'==. 
+//
+// replace totmat_centers`dist'_`x'=totmat`dist'_y`yr_`x''_`x'_`close_`yr_`x''' if cohort_school==`c'
+// replace totmat_centers`dist'_`x'=totmat`dist'_y`yr_`x''_`x'_2012 			 if cohort_school==`c' & totmat_centers`dist'_`x'==. 
+// replace totmat_centers`dist'_`x'=totmat`dist'_y`yr_`x''_`x'_2010 			 if cohort_school==`c' & totmat_centers`dist'_`x'==. 
+//
+// replace totcap_centers`dist'_`x'=totcap`dist'_y`yr_`x''_`x'_`close_`yr_`x''' 	if cohort_school==`c'
+// replace totcap_centers`dist'_`x'=totcap`dist'_y`yr_`x''_`x'_2012 				if cohort_school==`c' & totcap_centers`dist'_`x'==. 
+// replace totcap_centers`dist'_`x'=totcap`dist'_y`yr_`x''_`x'_2010 				if cohort_school==`c' & totcap_centers`dist'_`x'==. 
+//
+// replace mat_min_`x'=mat_min`yr_`x''_`x'_`close_`yr_`x''' 					if cohort_school==`c'
+// replace mat_min_`x'=mat_min`yr_`x''_`x'_2010 								if cohort_school==`c' & mat_min_`x'==.
+// replace mat_min_`x'=mat_min`yr_`x''_`x'_2012 								if cohort_school==`c' & mat_min_`x'==.
+//
+// replace cap_min_`x'=cap_min`yr_`x''_`x'_`close_`yr_`x''' 					if cohort_school==`c'
+// replace cap_min_`x'=cap_min`yr_`x''_`x'_2010 								if cohort_school==`c' & cap_min_`x'==.
+// replace cap_min_`x'=cap_min`yr_`x''_`x'_2012 								if cohort_school==`c' & cap_min_`x'==.
+//
+// replace min_center_cupos_`x'=dist_min_cupos_y`yr_`x''_`x'_`close_`yr_`x''' 	if cohort_school==`c'
+// replace min_center_cupos_`x'=dist_min_cupos_y`yr_`x''_`x'_2010 				if cohort_school==`c' & min_center_cupos_`x'==.
+// replace min_center_cupos_`x'=dist_min_cupos_y`yr_`x''_`x'_2012 				if cohort_school==`c' & min_center_cupos_`x'==.
+//
+// replace satur_`x'=sat_y`yr_`x''_`x'_`close_`yr_`x'''						if cohort_school==`c'
+// replace satur_`x'=sat_y`yr_`x''_`x'_2010									if cohort_school==`c' & satur_`x'==.
+// replace satur_`x'=sat_y`yr_`x''_`x'_2012									if cohort_school==`c' & satur_`x'==.
+//
+// replace cap_weight_`x'=cap_weight_y`yr_`x''_`x'_`close_`yr_`x'''			if cohort_school==`c'
+// replace cap_weight_`x'=cap_weight_y`yr_`x''_`x'_2010						if cohort_school==`c'& cap_weight_`x'==.
+// replace cap_weight_`x'=cap_weight_y`yr_`x''_`x'_2012						if cohort_school==`c'& cap_weight_`x'==.
+//
+// replace satur_weight_`x'=sat_weight_y`yr_`x''_`x'_`close_`yr_`x'''			if cohort_school==`c'
+// replace satur_weight_`x'=sat_weight_y`yr_`x''_`x'_2010						if cohort_school==`c' & satur_weight_`x'==.
+// replace satur_weight_`x'=sat_weight_y`yr_`x''_`x'_2012						if cohort_school==`c' & satur_weight_`x'==.
+//
+// replace N_centers_cupos`dist'_`x'=N_cen_cup`dist'_y`yr_`x''_`x'_`close_`yr_`x''' if cohort_school==`c'
+// replace N_centers_cupos`dist'_`x'=N_cen_cup`dist'_y`yr_`x''_`x'_2012 			if cohort_school==`c' & N_centers_cupos`dist'_`x'==. 
+// replace N_centers_cupos`dist'_`x'=N_cen_cup`dist'_y`yr_`x''_`x'_2010 			if cohort_school==`c' & N_centers_cupos`dist'_`x'==. 
 
 local yr_p_02 = `c'
 local yr_p_34 = `c'
@@ -1174,57 +1162,57 @@ replace min_center_pregnant_`x'=dist_min_y`yr_p_`x''_`x'_`close_`yr_`x''' 	if co
 replace min_center_pregnant_`x'=dist_min_y`yr_p_`x''_`x'_2010 				if cohort_school==`c' & min_center_pregnant_`x'==.
 replace min_center_pregnant_`x'=dist_min_y`yr_p_`x''_`x'_2012 				if cohort_school==`c' & min_center_pregnant_`x'==.
 
-replace N_centers_pregnant`dist'_`x'=N_centers`dist'_y`yr_p_`x''_`x'_`close_`yr_`x''' if cohort_school==`c'
-replace N_centers_pregnant`dist'_`x'=N_centers`dist'_y`yr_p_`x''_`x'_2012 			if cohort_school==`c' & N_centers_pregnant`dist'_`x'==. 
-replace N_centers_pregnant`dist'_`x'=N_centers`dist'_y`yr_p_`x''_`x'_2010 			if cohort_school==`c' & N_centers_pregnant`dist'_`x'==. 
+// replace N_centers_pregnant`dist'_`x'=N_centers`dist'_y`yr_p_`x''_`x'_`close_`yr_`x''' if cohort_school==`c'
+// replace N_centers_pregnant`dist'_`x'=N_centers`dist'_y`yr_p_`x''_`x'_2012 			if cohort_school==`c' & N_centers_pregnant`dist'_`x'==. 
+// replace N_centers_pregnant`dist'_`x'=N_centers`dist'_y`yr_p_`x''_`x'_2010 			if cohort_school==`c' & N_centers_pregnant`dist'_`x'==. 
+//
+// replace mat_centers_pregnant`dist'_`x'=mat`dist'_y`yr_p_`x''_`x'_`close_`yr_`x''' 	if cohort_school==`c'
+// replace mat_centers_pregnant`dist'_`x'=mat`dist'_y`yr_p_`x''_`x'_2012 				if cohort_school==`c' & mat_centers_pregnant`dist'_`x'==. 
+// replace mat_centers_pregnant`dist'_`x'=mat`dist'_y`yr_p_`x''_`x'_2010 				if cohort_school==`c' & mat_centers_pregnant`dist'_`x'==. 
 
-replace mat_centers_pregnant`dist'_`x'=mat`dist'_y`yr_p_`x''_`x'_`close_`yr_`x''' 	if cohort_school==`c'
-replace mat_centers_pregnant`dist'_`x'=mat`dist'_y`yr_p_`x''_`x'_2012 				if cohort_school==`c' & mat_centers_pregnant`dist'_`x'==. 
-replace mat_centers_pregnant`dist'_`x'=mat`dist'_y`yr_p_`x''_`x'_2010 				if cohort_school==`c' & mat_centers_pregnant`dist'_`x'==. 
-
-replace cap_centers_pregnant`dist'_`x'=cap`dist'_y`yr_p_`x''_`x'_`close_`yr_`x''' 	if cohort_school==`c'
-replace cap_centers_pregnant`dist'_`x'=cap`dist'_y`yr_p_`x''_`x'_2012 				if cohort_school==`c' & cap_centers_pregnant`dist'_`x'==. 
-replace cap_centers_pregnant`dist'_`x'=cap`dist'_y`yr_p_`x''_`x'_2010 				if cohort_school==`c' & cap_centers_pregnant`dist'_`x'==. 
+// replace cap_centers_pregnant`dist'_`x'=cap`dist'_y`yr_p_`x''_`x'_`close_`yr_`x''' 	if cohort_school==`c'
+// replace cap_centers_pregnant`dist'_`x'=cap`dist'_y`yr_p_`x''_`x'_2012 				if cohort_school==`c' & cap_centers_pregnant`dist'_`x'==. 
+// replace cap_centers_pregnant`dist'_`x'=cap`dist'_y`yr_p_`x''_`x'_2010 				if cohort_school==`c' & cap_centers_pregnant`dist'_`x'==. 
 
 replace min_center_toddler_34=dist_min_y`yr_02'_34_`close_`yr_34'' 				if cohort_school==`c'
 replace min_center_toddler_34=dist_min_y`yr_02'_34_2010 						if cohort_school==`c' & min_center_toddler_34==.
 replace min_center_toddler_34=dist_min_y`yr_02'_34_2012 						if cohort_school==`c' & min_center_toddler_34==.
 
-replace N_centers_toddler`dist'_34=N_centers`dist'_y`yr_02'_34_`close_`yr_34''  if cohort_school==`c'
-replace N_centers_toddler`dist'_34=N_centers`dist'_y`yr_02'_34_2012 			if cohort_school==`c' & N_centers_toddler`dist'_34==. 
-replace N_centers_toddler`dist'_34=N_centers`dist'_y`yr_02'_34_2010 			if cohort_school==`c' & N_centers_toddler`dist'_34==. 
+// replace N_centers_toddler`dist'_34=N_centers`dist'_y`yr_02'_34_`close_`yr_34''  if cohort_school==`c'
+// replace N_centers_toddler`dist'_34=N_centers`dist'_y`yr_02'_34_2012 			if cohort_school==`c' & N_centers_toddler`dist'_34==. 
+// replace N_centers_toddler`dist'_34=N_centers`dist'_y`yr_02'_34_2010 			if cohort_school==`c' & N_centers_toddler`dist'_34==. 
 
-replace mat_centers_toddler`dist'_34=mat`dist'_y`yr_02'_34_`close_`yr_34'' 		if cohort_school==`c'
-replace mat_centers_toddler`dist'_34=mat`dist'_y`yr_02'_34_2012 				if cohort_school==`c' & mat_centers_toddler`dist'_34==. 
-replace mat_centers_toddler`dist'_34=mat`dist'_y`yr_02'_34_2010 				if cohort_school==`c' & mat_centers_toddler`dist'_34==. 
-
-replace cap_centers_toddler`dist'_34=cap`dist'_y`yr_02'_34_`close_`yr_34'' 		if cohort_school==`c'
-replace cap_centers_toddler`dist'_34=cap`dist'_y`yr_02'_34_2012 				if cohort_school==`c' & cap_centers_toddler`dist'_34==. 
-replace cap_centers_toddler`dist'_34=cap`dist'_y`yr_02'_34_2010 				if cohort_school==`c' & cap_centers_toddler`dist'_34==. 
+// replace mat_centers_toddler`dist'_34=mat`dist'_y`yr_02'_34_`close_`yr_34'' 		if cohort_school==`c'
+// replace mat_centers_toddler`dist'_34=mat`dist'_y`yr_02'_34_2012 				if cohort_school==`c' & mat_centers_toddler`dist'_34==. 
+// replace mat_centers_toddler`dist'_34=mat`dist'_y`yr_02'_34_2010 				if cohort_school==`c' & mat_centers_toddler`dist'_34==. 
+//
+// replace cap_centers_toddler`dist'_34=cap`dist'_y`yr_02'_34_`close_`yr_34'' 		if cohort_school==`c'
+// replace cap_centers_toddler`dist'_34=cap`dist'_y`yr_02'_34_2012 				if cohort_school==`c' & cap_centers_toddler`dist'_34==. 
+// replace cap_centers_toddler`dist'_34=cap`dist'_y`yr_02'_34_2010 				if cohort_school==`c' & cap_centers_toddler`dist'_34==. 
 
 }
 }
-}
+// }
 
 foreach x in 2006 2007 2008 2009 2010 2011 2012 2013 2014{
 foreach m in 300 500 1000 5000{
-	drop N_centers`m'_y`x'* cap`m'_y`x'* mat`m'_y`x'*
+// 	drop N_centers`m'_y`x'* cap`m'_y`x'* mat`m'_y`x'*
 }
-	drop mat_min`x'* cap_min`x'* cap_weight_y`x'*
+// 	drop mat_min`x'* cap_min`x'* cap_weight_y`x'*
 }
-	drop dist_min_* sat_* N_cen_cup*
+	drop dist_min_* /*sat_* N_cen_cup**/
 
 
 
 ********************************************************************************
-*************************** * *VARIABLES* * ************************************
+**# *********************** * *VARIABLES PANEL* * ******************************
 ********************************************************************************
 
 tempfile data_elpi_aux
 save `data_elpi_aux'
 
-keep folio d1i* d1t* d2* d12* d13* d8* cohort* birth_year birth_month
-reshape long d1ia_ d1im_ d1ta_ d1tm_ d2_ d12_ d12t_ d13_ d8_, i(folio) j(order)
+keep folio job_start* job_end* d2* d12* d13* d8* cohort* birth_year birth_month
+reshape long job_start_ job_end_ d1ta_ d1tm_ d2_ d12_ d12t_ d13_ d8_, i(folio) j(order)
 tempfile hist_laboral
 save `hist_laboral'
 
@@ -1272,25 +1260,25 @@ gen hours_w_t02 = .
 
 ************************************************************************************************************
 ************************************************************************************************************
-sort folio order
-*******Formatear fechas de inicio, fin y cumpleaños*****
-egen    job_s     = concat(d1ia_ d1im_)
-gen     job_start = date(job_s, "YM")
-replace job_start = . if job_s==".."
-
-egen    job_e     = concat(d1ta_ d1tm_)
-gen     job_end   = date(job_e, "YM")
-replace job_end   = . if job_e==".."
-replace job_end   = job_end + 29 //to close the 30 day gap between periods
-
-egen bday_=concat(birth_year birth_month)
-gen bday=date(bday_, "YM")
-replace bday=. if bday_==".."
-
-drop job_s job_e bday_
+// sort folio order
+// *******Formatear fechas de inicio, fin y cumpleaños*****
+// egen    job_s     = concat(d1ia_ d1im_)
+// gen     job_start = date(job_s, "YM")
+// replace job_start = . if job_s==".."
+//
+// egen    job_e     = concat(d1ta_ d1tm_)
+// gen     job_end   = date(job_e, "YM")
+// replace job_end   = . if job_e==".."
+// replace job_end   = job_end + 29 //to close the 30 day gap between periods
+//
+// egen bday_=concat(birth_year birth_month)
+// gen bday=date(bday_, "YM")
+// replace bday=. if bday_==".."
+//
+// drop job_s job_e bday_
 
 *------------------------------------------------------*
-*------------------NEW SEGMENTS------------------------*
+**# ---------------NEW SEGMENTS------------------------*
 *------------------------------------------------------*
 	
 forval t=1/10{
@@ -1520,6 +1508,7 @@ drop aux_public*
 label var public_02 "Participation in public center at age 0-2"
 label var public_34 "Participation in public center at age 3-4"
 
+**# Deberíamos tomar variables de territorio de la ronda más cercana a la edad de 34, solo considerar otra ronda en caso de que no tengamos valor en 34 --> utilizar birth year.
 *Imputar region
 gen region = region_2010 
 replace region = region_2012 if region==.
@@ -1544,21 +1533,21 @@ replace comuna_cod_2=131 if comuna_cod_2==13 & (inrange(comuna_cod,13102, 13132)
 label var comuna_cod_2 "Comune group"
 
 *Gen min_center_02_p5 "Quintil de distancia"
-xtile min_center_02_p5 = min_center_02 , n(5)
+// xtile min_center_02_p5 = min_center_02 , n(5)
 xtile min_center_34_p5 = min_center_34 , n(5)
-label var min_center_02_p5 "Quintile"
+// label var min_center_02_p5 "Quintile"
 label var min_center_34_p5 "Quintile"
 
 *Gen min_center_02_p10 "Decil de distancia"
-xtile min_center_02_p10 = min_center_02 , n(10)
+// xtile min_center_02_p10 = min_center_02 , n(10)
 xtile min_center_34_p10 = min_center_34 , n(10)
-label var min_center_02_p10 "Decil de distancia"
+// label var min_center_02_p10 "Decil de distancia"
 label var min_center_34_p10 "Decil de distancia"
 
 *Gen min_center_02_p100 "Percentil de distancia"
-xtile min_center_02_p100 = min_center_02 , n(100)
+// xtile min_center_02_p100 = min_center_02 , n(100)
 xtile min_center_34_p100 = min_center_34 , n(100)
-label var min_center_02_p100 "Percentil de distancia"
+// label var min_center_02_p100 "Percentil de distancia"
 label var min_center_34_p100 "Percentil de distancia"
 
 *Married
@@ -1574,18 +1563,18 @@ replace married34 = married_2017 if inrange(birth_year,2011,2014) & married_2017
 
 ****Variables de Jorge
 replace min_center_34 = min_center_34/1000
-replace min_center_02 = min_center_02/1000
-replace min_center_pregnant_02 = min_center_pregnant_02/1000
+// replace min_center_02 = min_center_02/1000
+// replace min_center_pregnant_02 = min_center_pregnant_02/1000
 replace min_center_pregnant_34 = min_center_pregnant_34/1000
 
-*Dummy for one center within X kms
-foreach kms in 300 500 1000{
-	gen d_onec_`kms'_02 = N_centers`kms'_02	>= 1
-	gen d_onec_`kms'_34 = N_centers`kms'_34	>= 1
-
-	replace d_onec_`kms'_02 = . if N_centers`kms'_02 == .
-	replace d_onec_`kms'_34 = . if N_centers`kms'_34 == .
-}
+// *Dummy for one center within X kms
+// foreach kms in 300 500 1000{
+// 	gen d_onec_`kms'_02 = N_centers`kms'_02	>= 1
+// 	gen d_onec_`kms'_34 = N_centers`kms'_34	>= 1
+//
+// 	replace d_onec_`kms'_02 = . if N_centers`kms'_02 == .
+// 	replace d_onec_`kms'_34 = . if N_centers`kms'_34 == .
+// }
 
 *Dummy for closest center within 1 km 
 foreach age in 02 34{
@@ -1599,19 +1588,22 @@ foreach variable in "TVIP_t" "CBCL2_t" "CBCL1_t" "BATTELLE_t"{
 	gen `variable' = `variable'_2017 if birth_year>= 2008
 	replace `variable' = `variable'_2012 if inrange(birth_year,2005,2007)
 }
+
+**#CBCL no se usa pq se aplica a niños muy chicos 
 gen CBCL_t = CBCL1_t
 replace CBCL_t = CBCL2_t if CBCL_t == .
 
 
+**#Revisar utilizar sd, entiendo que ya están estandarizados?
 foreach variable in "TVIP_t" "CBCL_t" "BATTELLE_t"{
 	rename `variable' `variable'_aux
 	egen `variable' = std(`variable'_aux)
 }
 
 gen d_cc_02_34 = d_cc_02*d_cc_34
-gen min_center_02_mat_centers1000_34 = min_center_02*mat_centers1000_34
+// gen min_center_02_mat_centers1000_34 = min_center_02*mat_centers1000_34
 gen min_center_02_34 = min_center_02*min_center_34
-gen N_centers300_34_02 = N_centers300_02*N_centers300_34
+// gen N_centers300_34_02 = N_centers300_02*N_centers300_34
 
 
 gen d_cc = (d_cc_02 == 1) | (d_cc_34 == 1)
@@ -1660,7 +1652,7 @@ label var dum_young_siblings "Child has siblings younger that 4yo"
 label var comuna_cod "Comune"
 label var risk "Risk during pregnancy"
 label var cohort_school "School cohort"
-label var married "Married/Cohabiting"
+label var married "1 if both parents live with child"
 label var WAIS_t_num "WAIS. Puntaje T Digits"
 label var WAIS_t_vo "WAIS. Puntaje T Vocabulary"
 
@@ -1677,12 +1669,12 @@ label var min_center_cupos_`i' "Distance to the nearest center with space at age
 label var cap_min_`i' "Capacity of the nearest center at age `i'"
 label var cap_weight_`i' "Weighted average of the capacity of the centers at age `i'"
 label var mat_min_`i' "Enrollment of the nearest center at age `i'"
-foreach m in 300 500 1000 5000{
-label var N_centers`m'_`i' "Number of centers on a `m'mt radius at age `i'"
-label var N_centers_cupos`m'_`i' "Number of centers with space on a `m'mt radius at age `i'"
-label var cap_centers`m'_`i' "Average capacity of the centers on a `m'mt radius at age `i'"
-label var mat_centers`m'_`i' "Average enrollment of the centers on a `m'mt radius at age `i'"
-}
+// foreach m in 300 500 1000 5000{
+// label var N_centers`m'_`i' "Number of centers on a `m'mt radius at age `i'"
+// label var N_centers_cupos`m'_`i' "Number of centers with space on a `m'mt radius at age `i'"
+// label var cap_centers`m'_`i' "Average capacity of the centers on a `m'mt radius at age `i'"
+// label var mat_centers`m'_`i' "Average enrollment of the centers on a `m'mt radius at age `i'"
+// }
 }
 
 drop  d3_* d10_* tot*_y* h1_2017 comuna_lab_* comuna_size big_comuna 
@@ -1698,25 +1690,25 @@ BATTELLE* TVIP* ASQ* CBCL* WAIS_t* risk
 
 
 *Variabes de centros cerca
-gen tiene_centro02_300 = 1 if N_centers300_02 > 0 & N_centers300_02 != .
-replace tiene_centro02_300 = 0 if N_centers300_02 == 0
-gen tiene_centro34_300 = 1 if N_centers300_34 > 0 & N_centers300_34 != .
-replace tiene_centro34_300 = 0 if N_centers300_34 == 0
-
-gen tiene_centro02_500 = 1 if N_centers500_02 > 0 & N_centers500_02 != .
-replace tiene_centro02_500 = 0 if N_centers500_02 == 0
-gen tiene_centro34_500 = 1 if N_centers500_34 > 0 & N_centers500_34 != .
-replace tiene_centro34_500 = 0 if N_centers500_34 == 0
-
-gen tiene_centro02_1000 = 1 if N_centers1000_02 > 0 & N_centers1000_02 != .
-replace tiene_centro02_1000 = 0 if N_centers1000_02 == 0
-gen tiene_centro34_1000 = 1 if N_centers1000_34 > 0 & N_centers1000_34 != .
-replace tiene_centro34_1000 = 0 if N_centers1000_34 == 0
-
-gen tiene_centro02_5000 = 1 if N_centers5000_02 > 0 & N_centers5000_02 != .
-replace tiene_centro02_5000 = 0 if N_centers5000_02 == 0
-gen tiene_centro34_5000 = 1 if N_centers5000_34 > 0 & N_centers5000_34 != .
-replace tiene_centro34_5000 = 0 if N_centers5000_34 == 0
+// gen tiene_centro02_300 = 1 if N_centers300_02 > 0 & N_centers300_02 != .
+// replace tiene_centro02_300 = 0 if N_centers300_02 == 0
+// gen tiene_centro34_300 = 1 if N_centers300_34 > 0 & N_centers300_34 != .
+// replace tiene_centro34_300 = 0 if N_centers300_34 == 0
+//
+// gen tiene_centro02_500 = 1 if N_centers500_02 > 0 & N_centers500_02 != .
+// replace tiene_centro02_500 = 0 if N_centers500_02 == 0
+// gen tiene_centro34_500 = 1 if N_centers500_34 > 0 & N_centers500_34 != .
+// replace tiene_centro34_500 = 0 if N_centers500_34 == 0
+//
+// gen tiene_centro02_1000 = 1 if N_centers1000_02 > 0 & N_centers1000_02 != .
+// replace tiene_centro02_1000 = 0 if N_centers1000_02 == 0
+// gen tiene_centro34_1000 = 1 if N_centers1000_34 > 0 & N_centers1000_34 != .
+// replace tiene_centro34_1000 = 0 if N_centers1000_34 == 0
+//
+// gen tiene_centro02_5000 = 1 if N_centers5000_02 > 0 & N_centers5000_02 != .
+// replace tiene_centro02_5000 = 0 if N_centers5000_02 == 0
+// gen tiene_centro34_5000 = 1 if N_centers5000_34 > 0 & N_centers5000_34 != .
+// replace tiene_centro34_5000 = 0 if N_centers5000_34 == 0
 
 
 *-----------------------------------------------------------------------------*
