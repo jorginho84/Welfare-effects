@@ -66,7 +66,6 @@ foreach depvar in "wage_18" "hours_w_18" "d_work_18" "TVIP" {
 	qui: summarize `depvar'
 	local mean_`depvar' = string(round(r(mean),.001),"%9.3f")
 	
-	
 
 	local nreg = 1
 	*Overall
@@ -147,9 +146,21 @@ foreach depvar in "wage_18" "hours_w_18" "d_work_18" "TVIP" {
 	}
 	
 	
-	
-	
 }
+
+*overall
+count 
+local n_overall = r(N)
+*By gender
+count if gender == 1
+local n_gender1 = r(N)
+count if gender == 2
+local n_gender2 = r(N)
+*-by cat_income
+count if cat_income == 1
+local n_catincome1 = r(N)
+count if cat_income == 2
+local n_catincome2 = r(N)
 
 *Names for table
 local x = 1
@@ -158,6 +169,8 @@ foreach names in "Monthly earnings" "Hours worked" "Work (=1)" "Cognitive score 
 	local x = `x' + 1
 	
 }
+
+foreach 
 
 
 
@@ -180,6 +193,9 @@ file open itts using "$results/fe_estimates.tex", write replace
 		local x = `x' + 1
 	}
 	
+	*Number of obs
+	file write itts "\midrule" _n
+	file write itts "N     &  &         			       &  &  `n_overall'    &  `n_gender1'    & `n_gender2'    &  `n_catincome1'   &    `n_catincome2'   \\" _n
 	            
 	file write itts "\bottomrule" _n
 	file write itts "\end{tabular}" _n
