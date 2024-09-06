@@ -731,7 +731,7 @@ keep if h1==1|h1==2
 
 rename (o1 o10 y1) (work_aux hours_w_aux wage_aux)
 
-keep folio f_sch f_educ m_sch m_educ gender birth_weight dum_center12345 dum_center67 dum_work12345 dum_work67 cc_* dum_siblings tot_sib dum_young_siblings f_home dum_smoke dum_alc dum_sano dum_drug preg_control h1 m_age region idcomuna married n_integrantes fexp_enc0_2 fexp_eva0_2 fexp_hog0_2 time_center12345 time_center67 monthly_Y dum_work* work_aux hours_w_aux wage_aux espanel percentile_income_h
+keep folio f_sch f_educ m_sch m_educ gender birth_weight dum_center12345 dum_center67 dum_work12345 dum_work67 cc_* dum_siblings tot_sib dum_young_siblings f_home dum_smoke dum_alc dum_sano dum_drug preg_control h1 m_age region idcomuna married n_integrantes fexp_enc0_2 fexp_eva0_2 fexp_hog0_2 time_center12345 time_center67 monthly_Y dum_work* work_aux hours_w_aux wage_aux espanel percentile_income_h type_center67
 
 recode work_aux (2 = 0) (8 = .)
 recode wage_aux (9 = .)
@@ -1014,6 +1014,8 @@ save "$db/ELPI_Panel.dta", replace
 **# ************************ * *GEODATA* * *************************************
 ********************************************************************************
 
+use "$db/ELPI_Panel.dta", clear
+
 if `run_geo' == 1 {
 	qui: do "$code_dir/geodata.do"
 }
@@ -1051,7 +1053,7 @@ means that the distances are very long, not that there are variables missing
 thus, our assumption implies that we should never drop observations based
 on them not having distances*/
 
-*tempfile data_2012
+*tempfile data_2012	
 *save `data_2012'
 *Now, 2010
 *use "$db/ELPI_Panel", clear
@@ -1115,14 +1117,14 @@ replace min_center_toddler_34=dist_min_y`yr_02'_34_2012 						if cohort_school==
 // }
 	drop dist_min_* 
 
-
-
 ********************************************************************************
 **# *********************** * *VARIABLES* * ************************************
 ********************************************************************************
 
 tempfile data_elpi_aux
 save `data_elpi_aux'
+
+use "$db/ELPI_Panel.dta", clear
 
 keep folio fecha_inicio_w_* fecha_termino_w_* d2* d12* d13* d8* cohort* birth_date
 reshape long fecha_inicio_w_ fecha_termino_w_  d2_ d12_ d12t_ d13_ d8_, i(folio) j(order)
@@ -1368,6 +1370,8 @@ merge 1:1 folio using `data_elpi_aux'
 // use `data_elpi_aux', clear
 drop _merge
 
+merge 1:1 folio using "$db/ELPI_Panel.dta"
+drop _m
 
 * Center in workplace 
 gen trab_aux = . 
@@ -1424,6 +1428,8 @@ forval i=1/7{
 gen aux_public`i'=aux_public`i'_2010
 replace aux_public`i'=aux_public`i'_2012 if aux_public`i'!=1
 }
+gen aux_public_67_2017 = inlist(type_center67,1,3,5,6)
+replace aux_public_67_2017 = . if type_center67 == .
 
 *Gen public_ "1 si asiste a un centro publico, 0 si no o si va a uno privado"
 // egen public_02=rowtotal(aux_public1 aux_public2 aux_public3 aux_public4 aux_public5)
@@ -1434,6 +1440,7 @@ replace aux_public`i'=aux_public`i'_2012 if aux_public`i'!=1
 
 egen public_34=rowtotal(aux_public6 aux_public7)
 replace public_34=. if aux_public6==. & aux_public7==.
+replace public_34 = aux_public_67_2017 if public_34 == .
 replace public_34=1 if public_34>=1 & public_34!=.
 replace public_34=0 if d_cc_34==0
 tab public_34, m
