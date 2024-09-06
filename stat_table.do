@@ -7,7 +7,7 @@ This do-file computes the descriptive stat table
 clear all
 set matsize 800
 
-local user Jorge
+local user Cec
 
 if "`user'" == "andres"{
 	cd 				"/Users/andres/Dropbox/jardines_elpi"
@@ -37,6 +37,12 @@ else if "`user'"=="Antonia"{
 
 
 	}
+if "`user'" == "Cec"{
+	global des		"G:\Mi unidad\Uandes\Jardines_elpi"
+	global db 		"$des/Data"
+	global results 	"$des/Tex\figures_tables"
+	global codes 	"C:\Users\ccorrea\OneDrive - Universidad de los Andes\Documentos\GitHub\Welfare-effects"
+}
 
 set more off
 
@@ -70,7 +76,7 @@ qui: sum public_34
 local mean_public_34 = string(round(r(mean),.001),"%9.3f")
 
 *Instruments
-foreach var in "02" "34"{	
+foreach var in /*"02"*/ "34"{	
 	qui: sum min_center_`var'
 	local mean_min_center_`var' = string(round(r(mean),.001),"%9.3f")
 	local sd_min_center_`var' = string(round(r(sd),.001),"%9.3f")
@@ -105,7 +111,7 @@ foreach var in  dum_young_siblings risk f_home{
 }
 
 
-stop!!
+
 
 
 **Table**
