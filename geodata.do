@@ -36,7 +36,7 @@ else if "`user'"=="Antonia"{
 	global results "$des/resultados-anto"
 }
 
-if "`user'" == "Cec"{
+if "`c(username)'" == "ccorrea"{
 	global des		"G:\Mi unidad\Uandes\Jardines_elpi"
 	cd "$des"
 	global db 		"$des/Data"
@@ -48,11 +48,13 @@ if "`user'" == "Cec"{
 
 set more off
 
-**# (1) Generate distances db
+/*
+**# (1) Generate distances db: for each elpi_year, we append 15 dbfs (one per region). 
 foreach elpi_year in 2010 2012{
 forval i = 1/15 {
 di "--------------------- ELPI year = `elpi_year'; i = `i' ---------------------"
 	import dbase "$db/Dist2020/Distancias_`elpi_year'/D0`i'_`elpi_year'.dbf", clear 
+	gen region = `i'
 	tempfile d`i'_`elpi_year'
 	save `d`i'_`elpi_year''
 }
@@ -63,8 +65,9 @@ forval i=2/15 {
 rename InputID folio
 rename TargetID  id
 rename Distance distancia_establecimiento
-save "$db/Auxi/ELPI`year'_distances.dta", replace
+save "$db/ELPI`elpi_year'_distances.dta", replace
 }
+*/
 
 **# (2) Distance to the nearest 34 cc center
 use id year fuente cap_ms mat_ms using "$db/establecimientos3", clear
@@ -76,17 +79,23 @@ by id: replace cap_ms = cap_ms[_n-1] if cap_ms[_n] == .
 gen center_34 = 0
 replace center_34 = 1 if mat_ms != 0 & !missing(mat_ms) //303 missing values in mat_ms 
 replace center_34 = 1 if cap_ms != 0 & !missing(cap_ms) //# of missing values is now 79
+// replace center_34 = 1 if cap_het != 0 & !missing(cap_het)
+// replace center_34 = 1 if mat_het != 0 & !missing(mat_het)
 
 keep if center_34 == 1
 
 tempfile est_aux
 save `est_aux'
 
-foreach elpi_year in 2010 2012{
-	foreach y in 2006 2007 2008 2009 2010 2011 2012 2013 2014 {	
+// foreach elpi_year in 2010 2012{
+// 	foreach y in 2006 2007 2008 2009 2010 2011 2012 2013 2014 {	
 di "_________________________________________________________________________"
 di "- Var= dist_min_; ELPI year= `elpi_year'; year= `y'; Type of center= 34 -"
 di "_________________________________________________________________________"
+		
+		local elpi_year = 2010
+		local y = 2009
+//		
 		
 	use `est_aux', clear
 	keep if year == `y'
@@ -114,8 +123,39 @@ di "------------ Merge years 2006 to 2014; ELPI year = `elpi_year' -------------
 	}
 	
 di "-------------------- Save db ELPI year = `elpi_year' ------------------"
-	save "$db/ELPI_N_Centers_`elpi_year'_34center", replace
-// 	save "$db/Auxi/ELPI_N_Centers_`elpi_year'_34center", replace //Esto es para evitar escribir sobre la base inicial, y poder comparar entre ellas (por ahora)
+// 	save "$db/ELPI_N_Centers_`elpi_year'_34center", replace
+	save "$db/Auxi/ELPI_N_Centers_`elpi_year'_34center", replace //Esto es para evitar escribir sobre la base inicial, y poder comparar entre ellas (por ahora)
 }
 
+stp
+**# Revisión
 
+
+use "$db/ELPI2012_distances.dta", clear 
+gen id2 = substr(id,1,15)
+// replace id2 = id if id2 == ""
+//  substr("abcdef",2,3)
+
+moss id2, match("([0-9]+)")  regex
+
+gen rbd = _match1 if _count == 1
+egen rbd2 = concat(_match1 _match2) if _count == 2
+egen rbd3 = concat(_match1 _match2 _match3) if _count == 3
+egen rbd4 = concat(_match1 _match2 _match3 _match4) if _count == 4
+forval c = 2/4{
+	replace rbd = rbd`c' if _count == `c'
+}
+destring rbd, replace
+
+collapse (count) folio (mean) distancia_establecimiento _count, by(id id2 rbd)
+
+merge 1:m id using "$db/establecimientos3", keepusing(id year fuente cap_ms mat_ms)
+
+
+use id year fuente cap_ms mat_ms using "$db/establecimientos3", clear
+
+format distancia_establecimiento  %15.1g
+format folio %15.0g
+
+
+import dbase "$db/Auxi/D013_2012_dropbox.dbf", clear 
