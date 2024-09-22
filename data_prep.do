@@ -37,15 +37,21 @@ else if "`user'" == "Jorge"{
           
 }
 
-if "`user'" == "Cec"{
+if "`c(username)'" == "ccorrea"{
 	global des		"G:\Mi unidad\Uandes\Jardines_elpi"
-	cd "$des"
 	global db 		"$des/Data"
 // 	global results 	"$des/results"
 	global codes 	"C:\Users\ccorrea\OneDrive - Universidad de los Andes\Documentos\GitHub\Welfare-effects"
-// 	global code_dir	"$des"
 }
 
+if "`c(username)'" == "Cecilia" {
+	global des		"C:\Users\Cecilia\Mi unidad\Uandes\Jardines_elpi"
+	global db 		"$des/Data"
+// 	global results 	"$des/results"
+	global codes 	"C:\Users\Cecilia\Documents\GitHub\Welfare-effects"
+}
+
+cd "$des"
 
 
 /*
@@ -121,6 +127,10 @@ tempfile scores
 use "$db/elpi_original/Hogar_2010", clear
 
 recode a19 (999 = .)
+egen trab_aux = rowmax(c1 c2 c3) //La semana pasada, �trabaj� al menos una hora sin considerar los quehaceres d
+replace trab_aux = 1 if trab_aux >= 1
+replace trab_aux = . if c1 == . & c2 == . & c3 == .
+replace trab_aux = . if orden == 1
 
 	recode b2c (88 99 = .) (19 = 0) (9 = 8) //19 significa ninguno, 8 es el máximo.
 	recode b2n (88 99 = .) (19 = 0) //19 significa ninguno
@@ -185,7 +195,7 @@ recode a19 (999 = .)
 	gen dum_young_siblings = (a16 == 6 & a19 <= 4) // 1 if child has sibling(s) younger than 4 years old.
 	gen dum_sibling_part = (dum_young_siblings == 1 & b1==1 & b2n<=5) // 1 if child has siblings younger than 4 and they go to cc (pre-k or lower).
 	
-collapse (count) n_integrantes = orden (min) *_sch *_educ m_age gender (max) *_home m_maincarer dum_siblings dum_young_siblings dum_sibling_part (sum) tot_sib = dum_siblings (mean) d11m, by(folio fexp_hog)
+collapse (count) n_integrantes = orden (min) *_sch *_educ m_age gender (max) *_home m_maincarer dum_siblings dum_young_siblings dum_sibling_part (sum) tot_sib = dum_siblings (mean) d11m trab_aux , by(folio fexp_hog)
 	
 	replace dum_sibling_part = . if dum_young_siblings == 0
 
@@ -343,6 +353,10 @@ tempfile scoresb
 use "$db/elpi_original/Hogar_2012", clear
 
 recode i1 (999 = .)
+egen trab_aux = rowmax(k1 k2 k3) //La semana pasada, �trabaj� al menos una hora sin considerar los quehaceres d
+replace trab_aux = 1 if trab_aux >= 1
+replace trab_aux = . if k1 == . & k2 == . & k3 == .
+replace trab_aux = . if orden == 1
 
 	* Generate "escolaridad"
 	recode j2c (88 99 = .) (19 = 0) (9 = 8) //19 es ninguno, 8 se asume máximo.
@@ -406,7 +420,7 @@ recode i1 (999 = .)
 	gen dum_young_siblings = (i2 == 6 & i1 <= 4) // 1 if child has sibling younger than 4 years old.
 	gen dum_sibling_part = (dum_young_siblings == 1 & j1==1 & j2n<=5) // 1 if child has siblings younger than 4 and they go to cc (pre-k or lower).
 
-collapse (count) n_integrantes = orden (min) *_sch *_educ m_age gender (max) *_home m_maincarer dum_siblings dum_young_siblings dum_sibling_part (sum) tot_sib = dum_siblings (mean) l11_monto, by(folio fexp_hog0 fexp_hogP)
+collapse (count) n_integrantes = orden (min) *_sch *_educ m_age gender (max) *_home m_maincarer dum_siblings dum_young_siblings dum_sibling_part (sum) tot_sib = dum_siblings (mean) l11_monto trab_aux, by(folio fexp_hog0 fexp_hogP)
 	
 	replace dum_sibling_part = . if dum_young_siblings == 0
 
@@ -549,6 +563,17 @@ save "$db/ELPI_Panel.dta", replace
 *-------------------------------------------*
 use "$db/elpi_original/Entrevistada_2017", clear
 	sort folio	
+	
+egen trab_aux = rowmax(o1 o2 o3) //La semana pasada, �trabaj� al menos una hora sin considerar los quehaceres d
+replace trab_aux = 1 if trab_aux >= 1
+replace trab_aux = . if o1 == . & o2 == . & o3 == .
+replace trab_aux = . if h1 != 2
+bys folio: egen trab_aux2 = max(trab_aux)
+drop trab_aux
+rename trab_aux trab_aux
+
+	*Fecha nacimiento
+	bys folio: egen bday = max(fechanacimientons)
 
 	* Has sibling(s)
 	gen siblings_aux = (h1 == 8)
@@ -723,15 +748,16 @@ forval t = 1/8{
 egen dum_work12345 = rowmax(dum_work_new1 dum_work_new2 dum_work_new3 dum_work_new4 dum_work_new5)
 egen dum_work67 = rowmax(dum_work_new6 dum_work_new7)
 
-forval t = 1/8{
-	ren dum_work_new`t' 	dum_work`t'
-}
+// forval t = 1/8{
+// 	ren dum_work_new`t' 	dum_work`t'
+// 	replace dum_work`t' = 0 if dum_work`t' == . & o1 == 0 & o2 == 0 & o3 == 0 & o4 == 0 //Has never worked
+// }
 
 keep if h1==1|h1==2
 
 rename (o1 o10 y1) (work_aux hours_w_aux wage_aux)
 
-keep folio f_sch f_educ m_sch m_educ gender birth_weight dum_center12345 dum_center67 dum_work12345 dum_work67 cc_* dum_siblings tot_sib dum_young_siblings f_home dum_smoke dum_alc dum_sano dum_drug preg_control h1 m_age region idcomuna married n_integrantes fexp_enc0_2 fexp_eva0_2 fexp_hog0_2 time_center12345 time_center67 monthly_Y dum_work* work_aux hours_w_aux wage_aux espanel percentile_income_h type_center67
+keep folio f_sch f_educ m_sch m_educ gender birth_weight dum_center12345 dum_center67 dum_work12345 dum_work67 cc_* dum_siblings tot_sib dum_young_siblings f_home dum_smoke dum_alc dum_sano dum_drug preg_control h1 m_age region idcomuna married n_integrantes fexp_enc0_2 fexp_eva0_2 fexp_hog0_2 time_center12345 time_center67 monthly_Y dum_work* work_aux hours_w_aux wage_aux espanel percentile_income_h type_center67 bday trab_aux
 
 recode work_aux (2 = 0) (8 = .)
 recode wage_aux (9 = .)
@@ -806,23 +832,28 @@ rename _merge merge_2010_2012_2017
 *---Birth year and month; School cohort---*
 *-----------------------------------------*
 
+*First, we use 2017 info, with the exact birth date:
+gen birth_year = year(bday_2017)
+gen birth_month = month(bday_2017)
 
+*Then 2012, with the interview date:
 gen birth_date = fecha_entrevista_2012 - edad_meses_2012*30
-gen birth_month = month(birth_date)
-gen birth_year = year(birth_date)
-
+replace birth_month = month(birth_date) if birth_month == .
+replace birth_year = year(birth_date) if birth_year == .
+*2010 info
 replace birth_year = 2010 - floor(edad_meses_2010/12)  if birth_year == .
-replace birth_year = 2017 - floor(edad_mesesr_2017/12) if birth_year == .
-replace birth_year = 2006 if birth_year < 2006 //11 datos
-
 replace birth_month = 12 - (edad_meses_2010 - floor(edad_meses_2010/12)*12) if birth_month ==. 
+*And last, 2017 age in months
+replace birth_year = 2017 - floor(edad_mesesr_2017/12)  if birth_year == .
 replace birth_month = 12 - (edad_mesesr_2017 - floor(edad_mesesr_2017/12)*12) if birth_month ==. 
 
+replace birth_year = 2006 if birth_year < 2006 //11 datos
 gen cohort = birth_year
 
 gen cohort_school = .
 replace cohort_school = birth_year - 1 if birth_month < 4
 replace cohort_school = birth_year if birth_month >= 4
+replace cohort_school = 2006 if cohort_school < 2006
 
 
 *---------------------------------------------------------*
@@ -996,7 +1027,7 @@ replace `var'=`var'_2012 if `var'==.
 forvalues t=1/8{
 	gen dum_work_t`t' = dum_work`t'_2010 
 	replace dum_work_t`t' = dum_work`t'_2012 if dum_work_t`t' ==. 
-	replace dum_work_t`t' = dum_work`t'_2017 if dum_work_t`t' ==. 
+	replace dum_work_t`t' = dum_work_new`t'_2017 if dum_work_t`t' ==. 
 	label var dum_work_t`t' "Madre trabajaba en tramo `t' (pregunta ELPI)"
 }
 	gen dum_work_t9  = dum_work9_2012
@@ -1010,15 +1041,16 @@ save `ELPI_Panel'
 
 save "$db/ELPI_Panel.dta", replace
 
+
 ********************************************************************************
 **# ************************ * *GEODATA* * *************************************
 ********************************************************************************
 
 use "$db/ELPI_Panel.dta", clear
 
-if `run_geo' == 1 {
-	qui: do "$code_dir/geodata.do"
-}
+// if `run_geo' == 1 {
+// 	qui: do "$code_dir/geodata.do"
+// }
 
 
 *---------------------------------------------------*
@@ -1115,7 +1147,7 @@ replace min_center_toddler_34=dist_min_y`yr_02'_34_2012 						if cohort_school==
 // }
 // 	drop mat_min`x'* cap_min`x'* cap_weight_y`x'*
 // }
-	drop dist_min_* 
+// 	drop dist_min_* /*sat_* N_cen_cup**/
 
 ********************************************************************************
 **# *********************** * *VARIABLES* * ************************************
@@ -1369,9 +1401,18 @@ forvalues t=1/10{
 merge 1:1 folio using `data_elpi_aux'
 // use `data_elpi_aux', clear
 drop _merge
-
 merge 1:1 folio using "$db/ELPI_Panel.dta"
 drop _m
+
+forval t = 1/8{
+	replace d_work_t`t' = dum_work_t`t' if d_work_t`t' == .
+}
+foreach y in 2010 2012 2017{
+	replace d_work_t6 = trab_aux_`y' if birth_year == `y' - 2 & d_work_t6 == .
+	replace d_work_t7 = trab_aux_`y' if birth_year == `y' - 3 & d_work_t7 == .
+	replace d_work_t8 = trab_aux_`y' if birth_year == `y' - 4 & d_work_t8 == .
+}
+
 
 * Center in workplace 
 gen trab_aux = . 
@@ -1441,6 +1482,7 @@ replace aux_public_67_2017 = . if type_center67 == .
 egen public_34=rowtotal(aux_public6 aux_public7)
 replace public_34=. if aux_public6==. & aux_public7==.
 replace public_34 = aux_public_67_2017 if public_34 == .
+
 replace public_34=1 if public_34>=1 & public_34!=.
 replace public_34=0 if d_cc_34==0
 tab public_34, m
