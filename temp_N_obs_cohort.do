@@ -67,9 +67,9 @@ use "$db/data_estimate", clear
 **# (1) Total datos
 
 tab cohort_school, matcell(A)
-mat A = J(12,1,.),A
+mat A = J(11,1,.),A
 local j = 1
-forval c = 2005/2016{
+forval c = 2006/2016{
 	mat A[`j',1] = `c'
 	local j = `j' +1
 }
@@ -77,12 +77,13 @@ mat colnames A = "Cohorte" "N"
 mat li A
 
 **# (2) Distance to the nearest center at 34
+use "$db/data_estimate", clear
 drop if min_center_34 == .
 
-mat B = J(12,1,.)
+mat B = J(11,1,.)
 mat colnames B = "N distancia"
 local j = 1
-forval c = 2005/2016{
+forval c = 2006/2016{
 	count if cohort_school == `c'
 	mat B[`j',1] = r(N)
 	local j = `j'+1
@@ -92,12 +93,13 @@ mat A = A,B
 mat li A
 
 **# (3) Public center
+use "$db/data_estimate", clear
 drop if public_34 == .
 
-mat B = J(12,1,.)
+mat B = J(11,1,.)
 mat colnames B = "N public_34"
 local j = 1
-forval c = 2005/2016{
+forval c = 2006/2016{
 	count if cohort_school == `c'
 	mat B[`j',1] = r(N)
 	local j = `j'+1
@@ -108,18 +110,18 @@ mat A = A,B
 mat li A
 
 **# (4) Work vars
-
+use "$db/data_estimate", clear
 foreach var in wage hours_w d_work{
-	egen `var'_18=rowmean( `var'_t7 `var'_t8)
+	egen `var'_18=rowmean( `var'_t6 `var'_t7)
 }
 
-mat B = J(12,3,.)
+mat B = J(11,3,.)
 mat colnames B = "N wage" "N hours_w" "N d_work"
 local k = 1
 foreach v of varlist wage_18 hours_w_18 d_work_18{
 	di "`v'"
 local j = 1
-forval c = 2005/2016{
+forval c = 2006/2016{
 	qui: count if cohort_school == `c' & `v' != .
 	mat B[`j',`k'] = r(N)
 	local j = `j'+1
@@ -140,10 +142,10 @@ foreach v of varlist $controls{
 	drop if `v' == .
 }
 
-mat B = J(12,1,.)
+mat B = J(11,1,.)
 mat colnames B = "N controls"
 local j = 1
-forval c = 2005/2016{
+forval c = 2006/2016{
 	count if cohort_school == `c'
 	mat B[`j',1] = r(N)
 	local j = `j'+1
@@ -155,12 +157,12 @@ restore
 
 *We dont drop obs that do not have control vars. 
 
-mat C = J(12,8,.)
+mat C = J(11,8,.)
 mat colnames C = "Cohorte" "m_educ" "WAIS_t_num" "WAIS_t_vo" "m_age" "dum_young_siblings" "risk" "f_home"
 
 
 local j = 1
-forval c = 2005/2016{
+forval c = 2006/2016{
 	mat C[`j',1] = `c'
 local k = 2
 foreach v of varlist $controls {
