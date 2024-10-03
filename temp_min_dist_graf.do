@@ -20,15 +20,22 @@ cd "$des"
 
 **# First: all data
 use "$db/data_estimate", clear
-keep folio dist_min_* /*birth* cohort**/
+keep folio dist_min_* birth* /*cohort**/
+format birth_date %td
 
 *Change shape of data to long
 reshape long dist_min_y2006_34_ dist_min_y2007_34_ dist_min_y2008_34_ dist_min_y2009_34_ dist_min_y2010_34_ dist_min_y2011_34_ dist_min_y2012_34_ dist_min_y2013_34_ dist_min_y2014_34_ , i(folio) j(elpi_year)
 rename dist_min_y*_34_ dist_min*
 reshape long dist_min , i(folio elpi_year) j(year)
 
+gen aux_dist_min_34 = dist_min if year >= birth_year +2 & year <= birth_year +4 //Esto para tomar tramos 6 y 7 
+// Tramo 6: 2-3 años
+// Tramo 7: 3-4 años
+
+
+
 *Collapse data: first to have one obs per elpi_year and then to have one obs per year
-collapse (mean) dist_min, by(folio /*birth_date birth_month birth_year cohort**/ year )
+collapse (mean) dist_min, by(folio birth_date /*birth_month birth_year cohort**/ year )
 collapse (mean) dist_min (sd) dist_min_sd = dist_min, by( year )
 
 format dist_min %9.0g
