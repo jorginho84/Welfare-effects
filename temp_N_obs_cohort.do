@@ -44,7 +44,7 @@ else if "`user'"=="Antonia"{
 	global db 		"$des/Data"
 	global results 	"$des/Tex/figures_tables"
 	global codes 	"C:\Users\Cecilia\Documents\GitHub\Welfare-effects"
-	global results2 "$codes/Resultados"
+	global n_obs 	"$des/Numero de observaciones"
 }
 
 	if "`c(username)'" == "ccorrea"{
@@ -53,7 +53,7 @@ else if "`user'"=="Antonia"{
 	global db 		"$des/Data"
 	global results 	"$des/Tex/figures_tables"
 	global codes 	"C:\Users\ccorrea\OneDrive - Universidad de los Andes\Documentos\GitHub\Welfare-effects"
-	global results2 "$codes/Resultados"
+	global n_obs 	"$des/Numero de observaciones"
 }
 
 set more off
@@ -312,17 +312,82 @@ tw (line p10_min_center_34 cohort_school , sort) (line p90_min_center_34 cohort_
 
 
 
+**# Exportar base con folios que no tienen var de m laboral
+use "$db/data_estimate", clear
+
+foreach var in wage hours_w d_work{
+	egen `var'_18=rowmean( `var'_t6 `var'_t7)
+}
+
+gen tiene_dist = min_center_34 != .
+gen tiene_d_work = d_work_18 != .
+gen tiene_wage = wage_18 != .
+gen tiene_public_34 = public_34 != .
+
+keep if inlist(cohort_school,2010,2011) 
+keep folio cohort_school cohort tiene*
+
+keep if tiene_dist== 1 & tiene_d_work == 0
+save "$db/aux_foliossin_dwork.dta", replace
+
+
+* Revisamos 2010
+use "$db/elpi_original/Cuidado_infantil_2010", clear
+rename j1 dum_work 
+recode dum_work (2 = 0) (9 = .)
+rename orden tramo
+
+merge m:1 folio using "$db/aux_foliossin_dwork.dta"
+
+keep if _m == 3 // Matched   24  (_merge==3): 
+
+keep folio cohort* tramo dum_work tiene*
+reshape wide dum_work, i(folio) j(tramo)
+
+
+* Revisamos 2012
+use "$db/elpi_original/Cuidado_infantil_2012" , clear
+
+merge m:1 folio using "$db/aux_foliossin_dwork.dta"
+
+keep if _m == 3
+rename e1 dum_work 
+recode dum_work (2 = 0) (9 = .)
+ 
+
+keep folio cohort* tramo dum_work tiene*
+reshape wide dum_work, i(folio) j(tramo)
 
 
 
+//--> Todos los folios responden hasta tramo = 5. 
+/* if _m == 3
 
+     tramo: |
+   Tramo de |
+       edad |      Freq.     Percent        Cum.
+------------+-----------------------------------
+  0-3 meses |      1,215       26.51       26.51
+  3-6 meses |      1,215       26.51       53.02
+ 6-12 meses |      1,215       26.51       79.53
+12-18 meses |        787       17.17       96.71
+18-24 meses |        151        3.29      100.00
+------------+-----------------------------------
+      Total |      4,583      100.00
+*/
 
+use "$db/elpi_original/Hogar_2012", clear
+keep if orden == 1
 
+merge 1:1 folio using "$db/aux_foliossin_dwork.dta"
+keep if _m == 3
 
+foreach v of varlist k*{
+	recode `v' (2 = 0)
+}
+egen trab = rowmax(k1 k3 k4)
 
-
-
-
+bys cohort_school: tab tiene_d_work trab, m
 
 
 
