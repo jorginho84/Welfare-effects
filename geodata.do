@@ -48,7 +48,7 @@ if "`c(username)'" == "ccorrea"{
 
 set more off
 
-/*
+/* Lo borro porque esta parte del código demora, y no se le han hecho cambios en estos días
 **# (1) Generate distances db: for each elpi_year, we append 15 dbfs (one per region). 
 foreach elpi_year in 2010 2012{
 forval i = 1/15 {
@@ -70,7 +70,7 @@ save "$db/ELPI`elpi_year'_distances.dta", replace
 */
 
 **# (2) Distance to the nearest 34 cc center
-use id year fuente cap_ms mat_ms using "$db/establecimientos3", clear
+use id year fuente cap_ms mat_ms cap_het mat_het using "$db/establecimientos3", clear
 drop if fuente == "MINEDUC"
 
 sort id year
@@ -79,16 +79,16 @@ by id: replace cap_ms = cap_ms[_n-1] if cap_ms[_n] == .
 gen center_34 = 0
 replace center_34 = 1 if mat_ms != 0 & !missing(mat_ms) //303 missing values in mat_ms 
 replace center_34 = 1 if cap_ms != 0 & !missing(cap_ms) //# of missing values is now 79
-// replace center_34 = 1 if cap_het != 0 & !missing(cap_het)
-// replace center_34 = 1 if mat_het != 0 & !missing(mat_het)
+replace center_34 = 1 if cap_het != 0 & !missing(cap_het)
+replace center_34 = 1 if mat_het != 0 & !missing(mat_het)
 
 keep if center_34 == 1
 
 tempfile est_aux
 save `est_aux'
 
-// foreach elpi_year in 2010 2012{
-// 	foreach y in 2006 2007 2008 2009 2010 2011 2012 2013 2014 {	
+foreach elpi_year in 2010 2012{
+	foreach y in 2006 2007 2008 2009 2010 2011 2012 2013 2014 {	
 di "_________________________________________________________________________"
 di "- Var= dist_min_; ELPI year= `elpi_year'; year= `y'; Type of center= 34 -"
 di "_________________________________________________________________________"
@@ -123,8 +123,8 @@ di "------------ Merge years 2006 to 2014; ELPI year = `elpi_year' -------------
 	}
 	
 di "-------------------- Save db ELPI year = `elpi_year' ------------------"
-// 	save "$db/ELPI_N_Centers_`elpi_year'_34center", replace
-	save "$db/Auxi/ELPI_N_Centers_`elpi_year'_34center", replace //Esto es para evitar escribir sobre la base inicial, y poder comparar entre ellas (por ahora)
+	save "$db/ELPI_N_Centers_`elpi_year'_34center", replace
+// 	save "$db/Auxi/ELPI_N_Centers_`elpi_year'_34center", replace //Esto es para evitar escribir sobre la base inicial, y poder comparar entre ellas (por ahora)
 }
 
 stp
