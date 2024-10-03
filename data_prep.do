@@ -835,17 +835,26 @@ rename _merge merge_2010_2012_2017
 *First, we use 2017 info, with the exact birth date:
 gen birth_year = year(bday_2017)
 gen birth_month = month(bday_2017)
+rename bday_2017 birth_date
 
 *Then 2012, with the interview date:
-gen birth_date = fecha_entrevista_2012 - edad_meses_2012*30
-replace birth_month = month(birth_date) if birth_month == .
-replace birth_year = year(birth_date) if birth_year == .
+// gen birth_date = fecha_entrevista_2012 - edad_meses_2012*30
+// replace birth_month = month(birth_date) if birth_month == .
+// replace birth_year = year(birth_date) if birth_year == .
 *2010 info
 replace birth_year = 2010 - floor(edad_meses_2010/12)  if birth_year == .
 replace birth_month = 12 - (edad_meses_2010 - floor(edad_meses_2010/12)*12) if birth_month ==. 
+*2012
+replace birth_year = 2012 - floor(edad_meses_2012/12)  if birth_year == .
+replace birth_month = 12 - (edad_meses_2012 - floor(edad_meses_2012/12)*12) if birth_month ==. 
 *And last, 2017 age in months
 replace birth_year = 2017 - floor(edad_mesesr_2017/12)  if birth_year == .
 replace birth_month = 12 - (edad_mesesr_2017 - floor(edad_mesesr_2017/12)*12) if birth_month ==. 
+
+gen aux_bday = birth_year*100 + birth_month
+tostring aux_bday, replace
+replace birth_date = date(aux_bday , "YM") if birth_date == .
+drop aux_bday
 
 replace birth_year = 2006 if birth_year < 2006 //11 datos
 gen cohort = birth_year
@@ -1108,6 +1117,11 @@ local close_2013 2012
 local close_2014 2012
 
 gen 	min_center_toddler_34 = .
+// Nivel Medio: 
+// - Nivel Medio Menor 2 a 3 años de edad. 
+// - Nivel Medio Mayor 3 a 4 años de edad.
+// - Sala Cuna Menor: niños/as de entre 85 días y un año de edad. 
+// - Sala Cuna Mayor: niños/as entre 1 y 2 años de edad.
 
 foreach x in 34{
 gen 	min_center_`x' = .
@@ -1115,8 +1129,8 @@ gen 	min_center_pregnant_`x' = .
 
 foreach c in 2006 2007 2008 2009 2010 2011 2012 2013{
 
-local yr_02 = `c'+1
-local yr_34 = `c'+3
+local yr_02 = `c'
+local yr_34 = `c'+2
 if `yr_34' >= 2014 local yr_34 = 2014
 
 di "min_center"
@@ -1158,7 +1172,7 @@ save `data_elpi_aux'
 
 use "$db/ELPI_Panel.dta", clear
 
-keep folio fecha_inicio_w_* fecha_termino_w_* d2* d12* d13* d8* cohort* birth_date
+keep folio fecha_inicio_w_* fecha_termino_w_* d2* d12* d13* d8* cohort* birth_year birth_month birth_date
 reshape long fecha_inicio_w_ fecha_termino_w_  d2_ d12_ d12t_ d13_ d8_, i(folio) j(order)
 gen periodo = year(fecha_inicio_w)
 
