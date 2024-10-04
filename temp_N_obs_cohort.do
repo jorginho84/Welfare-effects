@@ -28,15 +28,6 @@ else if "`user'" == "Jorge"{
   global db "/Users/jorge-home/Dropbox/Research/DN-early/Dynamic_childcare/Data"
   global results "/Users/jorge-home/Dropbox/Research/DN-early/Dynamic_childcare/Results"          
 }
-
-else if "`user'"=="Antonia"{
-	global des "/Volumes/AKAC20/CC/CC_Jardines/Datos-Jardines"
-	cd "$des"
-	global db "$des/Data"
-	global results "$des/resultados-anto/public_34/mprte"
-
-
-	}
 	
 	if "`c(username)'" == "Cecilia"{
 	global des		"C:\Users\Cecilia\Mi unidad\Uandes\Jardines_elpi"
@@ -60,7 +51,6 @@ set more off
 
 **# Versión 1 del cálculo
 
-
 use "$db/data_estimate", clear
 
 
@@ -77,7 +67,7 @@ mat colnames A = "Cohorte" "N"
 mat li A
 
 **# (2) Distance to the nearest center at 34
-use "$db/data_estimate", clear
+// use "$db/data_estimate", clear
 drop if min_center_34 == .
 
 mat B = J(11,1,.)
@@ -93,7 +83,7 @@ mat A = A,B
 mat li A
 
 **# (3) Public center
-use "$db/data_estimate", clear
+// use "$db/data_estimate", clear
 drop if public_34 == .
 
 mat B = J(11,1,.)
@@ -110,7 +100,7 @@ mat A = A,B
 mat li A
 
 **# (4) Work vars
-use "$db/data_estimate", clear
+// use "$db/data_estimate", clear
 foreach var in wage hours_w d_work{
 	egen `var'_18=rowmean( `var'_t6 `var'_t7)
 }
@@ -155,7 +145,12 @@ mat A = A,B
 mat li A
 restore
 
-*We dont drop obs that do not have control vars. 
+putexcel set "$n_obs/N_obs_nonmissins.xlsx", sheet("Total") modify
+putexcel B2 = mat(A), colnames 
+
+
+**# Controles
+*We dont drop permanently obs that do not have control vars, so now we count the number of obs of each control var.
 
 mat C = J(11,8,.)
 mat colnames C = "Cohorte" "m_educ" "WAIS_t_num" "WAIS_t_vo" "m_age" "dum_young_siblings" "risk" "f_home"
@@ -177,11 +172,240 @@ local j = `j'+1
 mat li C
 
 
-**# Test | (2) Distance, (3) public (4) work vars.
+putexcel set "$n_obs/N_obs_nonmissins.xlsx", sheet("Controls") modify
+putexcel B2 = mat(C), colnames 
 
+
+
+**# Test | (2) Distance, (3) public (4) work vars.
+use "$db/data_estimate", clear
+
+*BATELLE
+forval d = 0/11 {
+	gen batelle_age`d'_t = BATTELLE_t_2010 if birth_year == 2010 - `d'
+	gen batelle_age`d'_ronda = 2010 if batelle_age`d'_t == BATTELLE_t_2010 & batelle_age`d'_t != .
+	replace batelle_age`d'_t = BATTELLE_t_2012 if birth_year == 2012 - `d' & batelle_age`d'_t == .
+	replace batelle_age`d'_ronda = 2012 if batelle_age`d'_t == BATTELLE_t_2012 & batelle_age`d'_t != .
+	replace batelle_age`d'_t = BATTELLE_t_2017  if birth_year == 2017 - `d' & batelle_age`d'_t == .
+	replace batelle_age`d'_ronda = 2017 if batelle_age`d'_t == BATTELLE_t_2017 & batelle_age`d'_t != .
+// 	label var batelle_age`d'_t "BATTELLE test score at `d' years old"
+// 	label var batelle_age`d'_ronda "From wich ELPI year is the BATELLE test score at `d' years old"
+}
+	
+*TVIP
+forval d = 0/11 {
+	gen tvip_age`d'_t = TVIP_t_2010 if birth_year == 2010 - `d'
+	gen tvip_age`d'_ronda = 2010 if tvip_age`d'_t == TVIP_t_2010 & tvip_age`d'_t != .
+	replace tvip_age`d'_t = TVIP_t_2012 if birth_year == 2012 - `d' & tvip_age`d'_t == .
+	replace tvip_age`d'_ronda = 2012 if tvip_age`d'_t == TVIP_t_2012 & tvip_age`d'_t != .
+	replace tvip_age`d'_t = TVIP_t_2017  if birth_year == 2017 - `d' & tvip_age`d'_t == .
+	replace tvip_age`d'_ronda = 2017 if tvip_age`d'_t == TVIP_t_2017 & tvip_age`d'_t != .
+// 	label var tvip_age`d'_t "TVIP test score at `d' years old"
+// 	label var tvip_age`d'_ronda "From wich ELPI year is the TVIP test score at `d' years old"
+}
+
+*CBCL1
+forval d = 0/11 {
+	gen cbcl1_age`d'_t = CBCL1_t_2010 if birth_year == 2010 - `d'
+	gen cbcl1_age`d'_ronda = 2010 if cbcl1_age`d'_t == CBCL1_t_2010 & cbcl1_age`d'_t != .
+	replace cbcl1_age`d'_t = CBCL1_t_2012 if birth_year == 2012 - `d' & cbcl1_age`d'_t == .
+	replace cbcl1_age`d'_ronda = 2012 if cbcl1_age`d'_t == CBCL1_t_2012 & cbcl1_age`d'_t != .
+	replace cbcl1_age`d'_t = CBCL1_t_2017  if birth_year == 2017 - `d' & cbcl1_age`d'_t == .
+	replace cbcl1_age`d'_ronda = 2017 if cbcl1_age`d'_t == CBCL1_t_2017 & cbcl1_age`d'_t != .
+// 	label var cbcl1_age`d'_t "CBCL1 test score at `d' years old"
+// 	label var cbcl1_age`d'_ronda "From wich ELPI year is the CBCL1 test score at `d' years old"
+}
+
+*CBCL2
+forval d = 0/11 {
+	gen cbcl2_age`d'_t = CBCL2_t_2012 if birth_year == 2012 - `d'
+	gen cbcl2_age`d'_ronda = 2012 if cbcl2_age`d'_t == CBCL2_t_2012  & cbcl2_age`d'_t != .
+	replace cbcl2_age`d'_t = CBCL2_t_2017  if birth_year == 2017 - `d' & cbcl2_age`d'_t == .
+	replace cbcl2_age`d'_ronda = 2017 if cbcl2_age`d'_t == CBCL2_t_2017 & cbcl2_age`d'_t != .
+// 	label var cbcl2_age`d'_t "CBCL2 test score at `d' years old"
+// 	label var cbcl2_age`d'_ronda "From wich ELPI year is the CBCL2 test score at `d' years old"
+}
+
+
+*Keep final sample
+foreach var in wage hours_w d_work{
+	egen `var'_18=rowmean( `var'_t6 `var'_t7)
+	keep if `var'_18 != .
+}
 keep if min_center_34 != .
 keep if public_34 != .
 keep if d_work_18 != .
+
+foreach v of varlist m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home percentile_income_h public_34 gender{
+	qui: drop if missing(`v')
+	di "Var: `v' n obs: `r(N_drop)'"
+}
+
+
+
+mat A = J(11,1,.)
+local j = 1
+forval c = 2006/2016{
+	mat A[`j',1] = `c'
+	local j = `j' +1
+}
+
+*Batelle
+mat T = J(11,12,.)
+mat E = J(11,12,.)
+
+local c2 = 1
+forval c = 2006/2016{
+	forval d = 0/11{
+		local d2 = `d' +1
+		qui: count if cohort == `c' & batelle_age`d'_t != .
+		mat T[`c2',`d2'] = r(N)
+		qui: sum batelle_age`d'_ronda if cohort == `c'
+		mat E[`c2',`d2'] = r(mean)
+	}
+local c2 = `c2' +1
+}
+
+mat T = A,T
+mat T = [.,0,1,2,3,4,5,6,7,8,9,10,11]\T
+mat li T
+mat E = A,E
+mat E = [.,0,1,2,3,4,5,6,7,8,9,10,11]\E
+mat li E
+
+putexcel set "$n_obs/N_obs_nonmissins.xlsx", sheet("Batelle") modify
+
+putexcel A2 = "N obs Batelle"
+putexcel B2 = mat(T) 
+putexcel B2 = "Cohort_school\Age"
+
+putexcel A16 = "Ronda ELPI de la que proviene"
+putexcel B16 = mat(E) 
+putexcel B16 = "Cohort_school\Age"
+
+*TVIP
+mat T = J(11,12,.)
+mat E = J(11,12,.)
+
+local c2 = 1
+forval c = 2006/2016{
+	forval d = 0/11{
+		local d2 = `d' +1
+		qui: count if cohort == `c' & tvip_age`d'_t != .
+		mat T[`c2',`d2'] = r(N)
+		qui: sum tvip_age`d'_ronda if cohort == `c'
+		mat E[`c2',`d2'] = r(mean)
+	}
+local c2 = `c2' +1
+}
+
+mat T = A,T
+mat T = [.,0,1,2,3,4,5,6,7,8,9,10,11]\T
+mat li T
+mat E = A,E
+mat E = [.,0,1,2,3,4,5,6,7,8,9,10,11]\E
+mat li E
+
+putexcel set "$n_obs/N_obs_nonmissins.xlsx", sheet("TVIP") modify
+
+putexcel A2 = "N obs TVIP"
+putexcel B2 = mat(T) 
+putexcel B2 = "Cohort_school\Age"
+
+putexcel A16 = "Ronda ELPI de la que proviene"
+putexcel B16 = mat(E) 
+putexcel B16 = "Cohort_school\Age"
+
+*CBCL1
+mat T = J(11,12,.)
+mat E = J(11,12,.)
+
+local c2 = 1
+forval c = 2006/2016{
+	forval d =  0/11{
+		local d2 = `d' +1
+		qui: count if cohort == `c' & cbcl1_age`d'_t != .
+		mat T[`c2',`d2'] = r(N)
+		qui: sum cbcl1_age`d'_ronda if cohort == `c'
+		mat E[`c2',`d2'] = r(mean)
+	}
+local c2 = `c2' +1
+}
+
+mat T = A,T
+mat T = [.,0,1,2,3,4,5,6,7,8,9,10,11]\T
+mat li T
+mat E = A,E
+mat E = [.,0,1,2,3,4,5,6,7,8,9,10,11]\E
+mat li E
+
+
+putexcel set "$n_obs/N_obs_nonmissins.xlsx", sheet("CBCL1") modify
+
+putexcel A2 = "N obs CBCL1"
+putexcel B2 = mat(T) 
+putexcel B2 = "Cohort_school\Age"
+
+putexcel A16 = "Ronda ELPI de la que proviene"
+putexcel B16 = mat(E) 
+putexcel B16 = "Cohort_school\Age"
+
+*CBCL2
+mat T = J(11,12,.)
+mat E = J(11,12,.)
+
+local c2 = 1
+forval c = 2006/2016{
+	forval d =  0/11{
+		local d2 = `d' +1
+		qui: count if cohort == `c' & cbcl2_age`d'_t != .
+		mat T[`c2',`d2'] = r(N)
+		qui: sum cbcl2_age`d'_ronda if cohort == `c'
+		mat E[`c2',`d2'] = r(mean)
+	}
+local c2 = `c2' +1
+}
+
+mat T = A,T
+mat T = [.,0,1,2,3,4,5,6,7,8,9,10,11]\T
+mat li T
+mat E = A,E
+mat E = [.,0,1,2,3,4,5,6,7,8,9,10,11]\E
+mat li E
+
+
+putexcel set "$n_obs/N_obs_nonmissins.xlsx", sheet("CBCL2") modify
+
+putexcel A2 = "N obs CBCL2"
+putexcel B2 = mat(T) 
+putexcel B2 = "Cohort_school\Age"
+
+putexcel A16 = "Ronda ELPI de la que proviene"
+putexcel B16 = mat(E) 
+putexcel B16 = "Cohort_school\Age"
+
+**# fin
+
+stp
+
+
+
+
+
+* CBCL 
+local j = 1
+forval c = 2005/2011{
+	mat T[`j',1] = `c'
+	local k = 2
+	foreach v of varlist $test{
+	di "`c' `v'"
+	qui: count if cohort_school == `c' & `v' != .
+	mat T[`j',`k'] = r(N)
+	local k = `k'+1
+}
+local j = `j'+1
+}
+
 // 0 obs deleted.
 egen TVIP = rowmean(TVIP_age_2 TVIP_age_3)
 
@@ -207,12 +431,6 @@ mat li T
 
 putexcel set "$n_obs/N_obs_nonmissins.xlsx", sheet("Testscores") modify
 putexcel B2 = mat(T), colnames 
-
-putexcel set "$n_obs/N_obs_nonmissins.xlsx", sheet("Controls") modify
-putexcel B2 = mat(C), colnames 
-
-putexcel set "$n_obs/N_obs_nonmissins.xlsx", sheet("Total") modify
-putexcel B2 = mat(A), colnames 
 
 
 stp
