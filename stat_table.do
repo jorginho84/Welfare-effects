@@ -29,25 +29,33 @@ else if "`user'" == "Jorge"{
   global results "/Users/jorge-home/Dropbox/Research/DN-early/Dynamic_childcare/Results"          
 }
 
-else if "`user'"=="Antonia"{
-	global des "/Volumes/AKAC20/CC/CC_Jardines/Datos-Jardines"
-	cd "$des"
-	global db "$des/Data"
-	global results "$des/resultados-anto/public_34/mprte"
+	if "`c(username)'" == "Cecilia"{
+	global des		"C:\Users\Cecilia\Mi unidad\Uandes\Jardines_elpi"
+	global db 		"$des/Data"
+	global results 	"$des/Tex/figures_tables"
+	global codes 	"C:\Users\Cecilia\Documents\GitHub\Welfare-effects"
+}
 
-
-	}
-if "`user'" == "Cec"{
+	if "`c(username)'" == "ccorrea"{
 	global des		"G:\Mi unidad\Uandes\Jardines_elpi"
 	global db 		"$des/Data"
-	global results 	"$des/Tex\figures_tables"
+	global results 	"$des/Tex/figures_tables"
 	global codes 	"C:\Users\ccorrea\OneDrive - Universidad de los Andes\Documentos\GitHub\Welfare-effects"
 }
+
+cd "$des"
 
 set more off
 
 use "$db/data_estimate", clear
 
+*Keeping if (1) has distance (2) has public_34 (3) has d_work (4) has all controls vars. 
+keep if min_center_34 != .
+keep if public_34 != .
+global controls m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home
+foreach v of varlist $controls{
+	drop if `v' == .
+}
 
 *Outcomes
 egen TVIP = rowmean(TVIP_age_2 TVIP_age_3)
@@ -57,8 +65,9 @@ local sd_TVIP = string(round(r(sd),.001),"%9.3f")
 
 
 foreach var in wage hours_w d_work {
-	egen `var'_18 = rowmean(`var'_t1 `var'_t2 `var'_t3 `var'_t4 `var'_t5 `var'_t6  `var'_t7 `var'_t8)
+	egen `var'_18 = rowmean(/*`var'_t1 `var'_t2 `var'_t3 `var'_t4 `var'_t5*/ `var'_t6  `var'_t7 /*`var'_t8*/)
 }
+keep if d_work_18 != .
 
 
 qui: sum d_work_18
@@ -111,6 +120,8 @@ foreach var in  dum_young_siblings risk f_home{
 }
 
 
+count 
+local n_obs = r(N)
 
 
 
@@ -133,7 +144,7 @@ file open stats using "$results/stat_table.tex", write replace
 	file write stats "    &  &                      & &              \\" _n
 	
 	file write stats "\textbf{Instruments}         &  &  & &    \\" _n
-	file write stats "0-2 proximity (kms) &  &                `mean_min_center_02'          & &         `sd_min_center_02'                \\" _n
+	/*file write stats "0-2 proximity (kms) &  &                `mean_min_center_02'          & &         `sd_min_center_02'                \\" _n*/
 	file write stats "3-4 proximity (kms) &  &                     `mean_min_center_34'      & &         `sd_min_center_34'               \\" _n
 	file write stats "    &  &                      & &              \\" _n
 	
@@ -147,6 +158,11 @@ file open stats using "$results/stat_table.tex", write replace
 	file write stats "Have younger siblings  &  &      `mean_dum_young_siblings'                    & &        -               \\" _n
 	file write stats "Risky pregnancy  &  &         `mean_risk'                 & &             `sd_risk'           \\" _n
 	file write stats "Father at home  &  &              `mean_f_home'            & &        -                \\" _n
+	
+	file write stats " & & & & \\" _n		
+	file write stats "\midrule" _n
+	file write stats "N  &  &    `n_obs'      & &       \\" _n
+	
 	file write stats "\bottomrule" _n
 	file write stats "\end{tabular}" _n
 file close stats
