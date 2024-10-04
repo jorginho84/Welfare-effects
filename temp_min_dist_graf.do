@@ -28,26 +28,26 @@ reshape long dist_min_y2006_34_ dist_min_y2007_34_ dist_min_y2008_34_ dist_min_y
 rename dist_min_y*_34_ dist_min*
 reshape long dist_min , i(folio elpi_year) j(year)
 
-gen aux_dist_min_34 = dist_min if year >= birth_year +2 & year <= birth_year +4 //Esto para tomar tramos 6 y 7 
+*Collapse data: first to have one obs per elpi_year 
+collapse (mean) dist_min, by(folio birth_date birth_year /*birth_month cohort**/ year )
+
+*Variable that shows distance to nearest center at 34.
+gen dist_min_34 = dist_min if year >= birth_year +2 & year <= birth_year +4 //Esto para tomar tramos 6 y 7 
 // Tramo 6: 2-3 años
 // Tramo 7: 3-4 años
+// bys folio: egen dist_min_34 = mean(aux_dist_min_34)
 
+*Collapse data: to have one obs per year
+collapse (mean) dist_min dist_min_34, by( year )
 
-
-*Collapse data: first to have one obs per elpi_year and then to have one obs per year
-collapse (mean) dist_min, by(folio birth_date /*birth_month birth_year cohort**/ year )
-collapse (mean) dist_min (sd) dist_min_sd = dist_min, by( year )
-
-format dist_min %9.0g
-gen lower_b = dist_min - 1.96*dist_min_sd 
-gen upper_b = dist_min + 1.96*dist_min_sd 
+format dist_min* %9.0g
 *Graph
 tsset year
-tw (tsline dist_min), ylabel(0(500)2000) ytitle("Distance to the nearest center") xtitle("Year")
+tw (tsline dist_min) (tsline dist_min_34) , ylabel(0(500)2000) ytitle("Distance to the nearest center (mt)") xtitle("Year") legend(order(1 "At all ages" 2 "Ages 2 to 4") position(6) c(2))
 graph export "$results/meandistance_year.png", as(png) replace
 
 *La desviación estándar es altísima:
-tw (line dist_min year, sort lcolor(blue)) (line lower_b year, lcolor(blue) lpattern(dash)) (line upper_b year, lcolor(blue) lpattern(dash)), legend(off)
+// tw (line dist_min year, sort lcolor(blue)) (line lower_b year, lcolor(blue) lpattern(dash)) (line upper_b year, lcolor(blue) lpattern(dash)), legend(off)
 
 
 
