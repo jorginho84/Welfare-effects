@@ -833,28 +833,31 @@ rename _merge merge_2010_2012_2017
 *-----------------------------------------*
 
 *First, we use 2017 info, with the exact birth date:
-gen birth_year = year(bday_2017)
-gen birth_month = month(bday_2017)
-rename bday_2017 birth_date
+// gen birth_year = year(bday_2017)
+// gen birth_month = month(bday_2017)
+// rename bday_2017 birth_date
 
 *Then 2012, with the interview date:
-// gen birth_date = fecha_entrevista_2012 - edad_meses_2012*30
-// replace birth_month = month(birth_date) if birth_month == .
-// replace birth_year = year(birth_date) if birth_year == .
+gen birth_date = fecha_entrevista_2012 - edad_meses_2012*30
+gen birth_month = month(birth_date) //if birth_month == .
+gen birth_year = year(birth_date) //if birth_year == .
 *2010 info
 replace birth_year = 2010 - floor(edad_meses_2010/12)  if birth_year == .
 replace birth_month = 12 - (edad_meses_2010 - floor(edad_meses_2010/12)*12) if birth_month ==. 
 *2012
-replace birth_year = 2012 - floor(edad_meses_2012/12)  if birth_year == .
-replace birth_month = 12 - (edad_meses_2012 - floor(edad_meses_2012/12)*12) if birth_month ==. 
+// replace birth_year = 2012 - floor(edad_meses_2012/12)  if birth_year == .
+// replace birth_month = 12 - (edad_meses_2012 - floor(edad_meses_2012/12)*12) if birth_month ==. 
 *And last, 2017 age in months
 replace birth_year = 2017 - floor(edad_mesesr_2017/12)  if birth_year == .
 replace birth_month = 12 - (edad_mesesr_2017 - floor(edad_mesesr_2017/12)*12) if birth_month ==. 
+replace birth_year = year(bday_2017) if birth_year == .
+replace birth_month = month(bday_2017) if birth_month == .
 
 gen aux_bday = birth_year*100 + birth_month
 tostring aux_bday, replace
 replace birth_date = date(aux_bday , "YM") if birth_date == .
 drop aux_bday
+replace birth_date = bday_2017 if birth_date == .
 
 replace birth_year = 2006 if birth_year < 2006 //11 datos
 gen cohort = birth_year
@@ -1407,7 +1410,7 @@ rename _merge merge10
 
 **********************************************************************************
 
-
+*Historia laboral from 2012
 forvalues t=1/10{
 	replace d_work_t`t'=1 if d_work_t`t' > 0 & d_work_t`t'!=.	
 }
@@ -1418,9 +1421,11 @@ drop _merge
 merge 1:1 folio using "$db/ELPI_Panel.dta"
 drop _m
 
+*ELPI question: "Madre trabajaba en tramo t"
 forval t = 1/8{
 	replace d_work_t`t' = dum_work_t`t' if d_work_t`t' == .
 }
+*Is the mother working at the moment?:
 foreach y in 2010 2012 2017{
 	replace d_work_t6 = trab_aux_`y' if birth_year == `y' - 2 & d_work_t6 == .
 	replace d_work_t7 = trab_aux_`y' if birth_year == `y' - 3 & d_work_t7 == .
