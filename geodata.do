@@ -48,7 +48,6 @@ if "`c(username)'" == "ccorrea"{
 
 set more off
 
-/* Lo borro porque esta parte del código demora, y no se le han hecho cambios en estos días
 **# (1) Generate distances db: for each elpi_year, we append 15 dbfs (one per region). 
 foreach elpi_year in 2010 2012{
 forval i = 1/15 {
@@ -67,14 +66,15 @@ rename TargetID  id
 rename Distance distancia_establecimiento
 save "$db/ELPI`elpi_year'_distances.dta", replace
 }
-*/
+
 
 **# (2) Distance to the nearest 34 cc center
 use id year fuente cap_ms mat_ms cap_het mat_het using "$db/establecimientos3", clear
 drop if fuente == "MINEDUC"
 
 sort id year
-by id: replace cap_ms = cap_ms[_n-1] if cap_ms[_n] == .
+by id: replace cap_ms  = cap_ms[_n-1]  if cap_ms[_n] == .
+by id: replace cap_het = cap_het[_n-1] if cap_het[_n] == .
 
 gen center_34 = 0
 replace center_34 = 1 if mat_ms != 0 & !missing(mat_ms) //303 missing values in mat_ms 
@@ -127,35 +127,3 @@ di "-------------------- Save db ELPI year = `elpi_year' ------------------"
 // 	save "$db/Auxi/ELPI_N_Centers_`elpi_year'_34center", replace //Esto es para evitar escribir sobre la base inicial, y poder comparar entre ellas (por ahora)
 }
 
-stp
-**# Revisión
-
-
-use "$db/ELPI2012_distances.dta", clear 
-gen id2 = substr(id,1,15)
-// replace id2 = id if id2 == ""
-//  substr("abcdef",2,3)
-
-moss id2, match("([0-9]+)")  regex
-
-gen rbd = _match1 if _count == 1
-egen rbd2 = concat(_match1 _match2) if _count == 2
-egen rbd3 = concat(_match1 _match2 _match3) if _count == 3
-egen rbd4 = concat(_match1 _match2 _match3 _match4) if _count == 4
-forval c = 2/4{
-	replace rbd = rbd`c' if _count == `c'
-}
-destring rbd, replace
-
-collapse (count) folio (mean) distancia_establecimiento _count, by(id id2 rbd)
-
-merge 1:m id using "$db/establecimientos3", keepusing(id year fuente cap_ms mat_ms)
-
-
-use id year fuente cap_ms mat_ms using "$db/establecimientos3", clear
-
-format distancia_establecimiento  %15.1g
-format folio %15.0g
-
-
-import dbase "$db/Auxi/D013_2012_dropbox.dbf", clear 
