@@ -1060,9 +1060,9 @@ save "$db/ELPI_Panel.dta", replace
 
 use "$db/ELPI_Panel.dta", clear
 
-// if `run_geo' == 1 {
-// 	qui: do "$code_dir/geodata.do"
-// }
+if `run_geo' == 1 {
+	qui: do "$code_dir/geodata.do"
+}
 
 
 *---------------------------------------------------*
@@ -1133,7 +1133,7 @@ gen 	min_center_pregnant_`x' = .
 foreach c in 2006 2007 2008 2009 2010 2011 2012 2013{
 
 local yr_02 = `c'
-local yr_34 = `c'+2
+local yr_34 = `c'+2 
 if `yr_34' >= 2014 local yr_34 = 2014
 
 di "min_center"
@@ -1156,6 +1156,35 @@ replace min_center_toddler_34=dist_min_y`yr_02'_34_2012 						if cohort_school==
 
 }
 }
+
+local close_2007 2010
+local close_2008 2010
+local close_2009 2010
+local close_2010 2010
+local close_2011 2010
+local close_2012 2012
+local close_2013 2012
+local close_2014 2012
+
+foreach x in NMm NMM{
+gen 	min_center_`x' = .
+
+foreach c in 2006 2007 2008 2009 2010 2011 2012 2013{
+
+local yr_NMm = `c' +2
+local yr_NMM = `c' +3 
+if `yr_NMm' >= 2014 local yr_NMm = 2014
+if `yr_NMM' >= 2014 local yr_NMM = 2014
+
+di "year `c' min_center_`x'"
+replace min_center_`x'=dist_min_y`yr_`x''_34_`close_`yr_`x''' 			if cohort_school==`c'
+replace min_center_`x'=dist_min_y`yr_`x''_34_2010 						if cohort_school==`c' & min_center_`x'==.
+replace min_center_`x'=dist_min_y`yr_`x''_34_2012 						if cohort_school==`c' & min_center_`x'==.
+
+}
+}
+
+egen min_center_NM = rowmean(min_center_NM*)
 
 
 // foreach x in 2006 2007 2008 2009 2010 2011 2012 2013 2014{
