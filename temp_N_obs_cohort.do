@@ -44,7 +44,7 @@ else if "`user'" == "Jorge"{
 	global db 		"$des/Data"
 	global results 	"$des/Tex/figures_tables"
 	global codes 	"C:\Users\ccorrea\OneDrive - Universidad de los Andes\Documentos\GitHub\Welfare-effects"
-	global n_obs 	"$des/Numero de observaciones"
+	global n_obs 	"$des/results/Numero de observaciones"
 }
 
 set more off
@@ -258,9 +258,9 @@ local c2 = 1
 forval c = 2006/2016{
 	forval d = 0/11{
 		local d2 = `d' +1
-		qui: count if cohort == `c' & batelle_age`d'_t != .
+		qui: count if cohort_school == `c' & batelle_age`d'_t != .
 		mat T[`c2',`d2'] = r(N)
-		qui: sum batelle_age`d'_ronda if cohort == `c'
+		qui: sum batelle_age`d'_ronda if cohort_school == `c'
 		mat E[`c2',`d2'] = r(mean)
 	}
 local c2 = `c2' +1
@@ -291,9 +291,9 @@ local c2 = 1
 forval c = 2006/2016{
 	forval d = 0/11{
 		local d2 = `d' +1
-		qui: count if cohort == `c' & tvip_age`d'_t != .
+		qui: count if cohort_school == `c' & tvip_age`d'_t != .
 		mat T[`c2',`d2'] = r(N)
-		qui: sum tvip_age`d'_ronda if cohort == `c'
+		qui: sum tvip_age`d'_ronda if cohort_school == `c'
 		mat E[`c2',`d2'] = r(mean)
 	}
 local c2 = `c2' +1
@@ -324,9 +324,9 @@ local c2 = 1
 forval c = 2006/2016{
 	forval d =  0/11{
 		local d2 = `d' +1
-		qui: count if cohort == `c' & cbcl1_age`d'_t != .
+		qui: count if cohort_school == `c' & cbcl1_age`d'_t != .
 		mat T[`c2',`d2'] = r(N)
-		qui: sum cbcl1_age`d'_ronda if cohort == `c'
+		qui: sum cbcl1_age`d'_ronda if cohort_school == `c'
 		mat E[`c2',`d2'] = r(mean)
 	}
 local c2 = `c2' +1
@@ -358,9 +358,9 @@ local c2 = 1
 forval c = 2006/2016{
 	forval d =  0/11{
 		local d2 = `d' +1
-		qui: count if cohort == `c' & cbcl2_age`d'_t != .
+		qui: count if cohort_school == `c' & cbcl2_age`d'_t != .
 		mat T[`c2',`d2'] = r(N)
-		qui: sum cbcl2_age`d'_ronda if cohort == `c'
+		qui: sum cbcl2_age`d'_ronda if cohort_school == `c'
 		mat E[`c2',`d2'] = r(mean)
 	}
 local c2 = `c2' +1
