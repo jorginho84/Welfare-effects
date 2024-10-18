@@ -49,26 +49,12 @@ set more off
 
 use "$db/data_estimate", clear
 
-*Keeping if (1) has distance (2) has public_34 (3) has d_work (4) has all controls vars. 
-keep if min_center_34 != .
-keep if public_34 != .
-global controls m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home
-foreach v of varlist $controls{
-	drop if `v' == .
-}
 
 *Outcomes
 egen TVIP = rowmean(TVIP_age_2 TVIP_age_3)
 qui: sum TVIP
 local mean_TVIP = string(round(r(mean),.001),"%9.3f")
 local sd_TVIP = string(round(r(sd),.001),"%9.3f")
-
-
-foreach var in wage hours_w d_work {
-	egen `var'_18 = rowmean(/*`var'_t1 `var'_t2 `var'_t3 `var'_t4 `var'_t5*/ `var'_t6  `var'_t7 /*`var'_t8*/)
-}
-keep if d_work_18 != .
-
 
 qui: sum d_work_18
 local mean_d_work_18 = string(round(r(mean),.1),"%9.3f")

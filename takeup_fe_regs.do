@@ -57,10 +57,7 @@ global controls i.m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_ho
 *---------PREP---------*
 *----------------------*
 
-foreach var in wage hours_w d_work{
-	egen `var'_18=rowmean( `var'_t7 `var'_t8)
-	*gen `var'_18 = `var'_t7
-}
+
 
 egen TVIP = rowmean(TVIP_age_2 TVIP_age_3)
 
