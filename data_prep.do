@@ -1782,6 +1782,22 @@ egen CBCL_age_`x'=std(CBCL_age_`x'_aux)
 
 drop *_age_*_aux
 
+
+*Keeping if (1) has distance (2) has public_34 (3) has d_work (4) has all controls vars. 
+
+keep if min_center_34 != .
+keep if public_34 != .
+global controls m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home
+foreach v of varlist $controls{
+	drop if `v' == .
+}
+
+foreach var in d_work wage hours_w{
+	di "`var'"
+	egen `var'_18=rowmean( `var'_t7 `var'_t8)
+	keep if `var'_18 != .
+}
+
 save "$db/data_estimate", replace
 
 
