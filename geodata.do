@@ -36,23 +36,24 @@ else if "`user'"=="Antonia"{
 	global results "$des/resultados-anto"
 }
 
-if "`user'" == "Cec"{
-	global des		"C:\Users\Cecilia\Mi unidad\Uandes\Jardines_elpi"
+if "`c(username)'" == "ccorrea"{
+	global des		"G:\Mi unidad\Uandes\Jardines_elpi"
 	cd "$des"
 	global db 		"$des/Data"
 // 	global results 	"$des/results"
-	global codes 	"C:\Users\Cecilia\Documents\GitHub\Welfare-effects"
+	global codes 	"C:\Users\ccorrea\OneDrive - Universidad de los Andes\Documentos\GitHub\Welfare-effects"
 // 	global code_dir	"$des"
 }
 
 
 set more off
 
-**# (1) Generate distances db
+**# (1) Generate distances db: for each elpi_year, we append 15 dbfs (one per region). 
 foreach elpi_year in 2010 2012{
 forval i = 1/15 {
 di "--------------------- ELPI year = `elpi_year'; i = `i' ---------------------"
 	import dbase "$db/Dist2020/Distancias_`elpi_year'/D0`i'_`elpi_year'.dbf", clear 
+	gen region = `i'
 	tempfile d`i'_`elpi_year'
 	save `d`i'_`elpi_year''
 }
@@ -63,19 +64,23 @@ forval i=2/15 {
 rename InputID folio
 rename TargetID  id
 rename Distance distancia_establecimiento
-save "$db/Auxi/ELPI`year'_distances.dta", replace
+save "$db/ELPI`elpi_year'_distances.dta", replace
 }
 
+
 **# (2) Distance to the nearest 34 cc center
-use id year fuente cap_ms mat_ms using "$db/establecimientos3", clear
+use id year fuente cap_ms mat_ms cap_het mat_het using "$db/establecimientos3", clear
 drop if fuente == "MINEDUC"
 
 sort id year
-by id: replace cap_ms = cap_ms[_n-1] if cap_ms[_n] == .
+by id: replace cap_ms  = cap_ms[_n-1]  if cap_ms[_n] == .
+by id: replace cap_het = cap_het[_n-1] if cap_het[_n] == .
 
 gen center_34 = 0
 replace center_34 = 1 if mat_ms != 0 & !missing(mat_ms) //303 missing values in mat_ms 
 replace center_34 = 1 if cap_ms != 0 & !missing(cap_ms) //# of missing values is now 79
+replace center_34 = 1 if cap_het != 0 & !missing(cap_het)
+replace center_34 = 1 if mat_het != 0 & !missing(mat_het)
 
 keep if center_34 == 1
 
@@ -87,6 +92,10 @@ foreach elpi_year in 2010 2012{
 di "_________________________________________________________________________"
 di "- Var= dist_min_; ELPI year= `elpi_year'; year= `y'; Type of center= 34 -"
 di "_________________________________________________________________________"
+		
+		local elpi_year = 2010
+		local y = 2009
+//		
 		
 	use `est_aux', clear
 	keep if year == `y'
@@ -117,5 +126,4 @@ di "-------------------- Save db ELPI year = `elpi_year' ------------------"
 	save "$db/ELPI_N_Centers_`elpi_year'_34center", replace
 // 	save "$db/Auxi/ELPI_N_Centers_`elpi_year'_34center", replace //Esto es para evitar escribir sobre la base inicial, y poder comparar entre ellas (por ahora)
 }
-
 

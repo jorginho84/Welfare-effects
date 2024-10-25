@@ -7,7 +7,7 @@ This do-file computes the descriptive stat table
 clear all
 set matsize 800
 
-local user Jorge
+local user Cec
 
 if "`user'" == "andres"{
 	cd 				"/Users/andres/Dropbox/jardines_elpi"
@@ -29,14 +29,21 @@ else if "`user'" == "Jorge"{
   global results "/Users/jorge-home/Dropbox/Research/DN-early/Dynamic_childcare/Results"          
 }
 
-else if "`user'"=="Antonia"{
-	global des "/Volumes/AKAC20/CC/CC_Jardines/Datos-Jardines"
-	cd "$des"
-	global db "$des/Data"
-	global results "$des/resultados-anto/public_34/mprte"
+	if "`c(username)'" == "Cecilia"{
+	global des		"C:\Users\Cecilia\Mi unidad\Uandes\Jardines_elpi"
+	global db 		"$des/Data"
+	global results 	"$des/Tex/figures_tables"
+	global codes 	"C:\Users\Cecilia\Documents\GitHub\Welfare-effects"
+}
 
+	if "`c(username)'" == "ccorrea"{
+	global des		"G:\Mi unidad\Uandes\Jardines_elpi"
+	global db 		"$des/Data"
+	global results 	"$des/Tex/figures_tables"
+	global codes 	"C:\Users\ccorrea\OneDrive - Universidad de los Andes\Documentos\GitHub\Welfare-effects"
+}
 
-	}
+cd "$des"
 
 set more off
 
@@ -48,12 +55,6 @@ egen TVIP = rowmean(TVIP_age_2 TVIP_age_3)
 qui: sum TVIP
 local mean_TVIP = string(round(r(mean),.001),"%9.3f")
 local sd_TVIP = string(round(r(sd),.001),"%9.3f")
-
-
-foreach var in wage hours_w d_work {
-	egen `var'_18 = rowmean(`var'_t1 `var'_t2 `var'_t3 `var'_t4 `var'_t5 `var'_t6  `var'_t7 `var'_t8)
-}
-
 
 qui: sum d_work_18
 local mean_d_work_18 = string(round(r(mean),.1),"%9.3f")
@@ -70,7 +71,7 @@ qui: sum public_34
 local mean_public_34 = string(round(r(mean),.001),"%9.3f")
 
 *Instruments
-foreach var in "02" "34"{	
+foreach var in /*"02"*/ "34"{	
 	qui: sum min_center_`var'
 	local mean_min_center_`var' = string(round(r(mean),.001),"%9.3f")
 	local sd_min_center_`var' = string(round(r(sd),.001),"%9.3f")
@@ -105,7 +106,9 @@ foreach var in  dum_young_siblings risk f_home{
 }
 
 
-stop!!
+count 
+local n_obs = r(N)
+
 
 
 **Table**
@@ -127,7 +130,7 @@ file open stats using "$results/stat_table.tex", write replace
 	file write stats "    &  &                      & &              \\" _n
 	
 	file write stats "\textbf{Instruments}         &  &  & &    \\" _n
-	file write stats "0-2 proximity (kms) &  &                `mean_min_center_02'          & &         `sd_min_center_02'                \\" _n
+	/*file write stats "0-2 proximity (kms) &  &                `mean_min_center_02'          & &         `sd_min_center_02'                \\" _n*/
 	file write stats "3-4 proximity (kms) &  &                     `mean_min_center_34'      & &         `sd_min_center_34'               \\" _n
 	file write stats "    &  &                      & &              \\" _n
 	
@@ -141,6 +144,11 @@ file open stats using "$results/stat_table.tex", write replace
 	file write stats "Have younger siblings  &  &      `mean_dum_young_siblings'                    & &        -               \\" _n
 	file write stats "Risky pregnancy  &  &         `mean_risk'                 & &             `sd_risk'           \\" _n
 	file write stats "Father at home  &  &              `mean_f_home'            & &        -                \\" _n
+	
+	file write stats " & & & & \\" _n		
+	file write stats "\midrule" _n
+	file write stats "N  &  &    `n_obs'      & &       \\" _n
+	
 	file write stats "\bottomrule" _n
 	file write stats "\end{tabular}" _n
 file close stats
