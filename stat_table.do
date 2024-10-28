@@ -71,14 +71,14 @@ qui: sum public_34
 local mean_public_34 = string(round(r(mean),.001),"%9.3f")
 
 *Instruments
-foreach var in /*"02"*/ "34"{	
+foreach var in "NM"{	
 	qui: sum min_center_`var'
 	local mean_min_center_`var' = string(round(r(mean),.001),"%9.3f")
 	local sd_min_center_`var' = string(round(r(sd),.001),"%9.3f")
 }
 
 *Covariates
-forvalues x = 2/4{
+forvalues x = 1/4{
 		gen dum_m_educ_`x' = m_educ  == `x'
 		replace dum_m_educ_`x' = . if m_educ == .
 		qui: sum dum_m_educ_`x'
@@ -135,6 +135,7 @@ file open stats using "$results/stat_table.tex", write replace
 	file write stats "    &  &                      & &              \\" _n
 	
 	file write stats "\textbf{Covariates}         &  &  & &    \\" _n
+	file write stats "Mother: less than high school &  &           `mean_dum_m_educ_1'               & &        -                \\" _n
 	file write stats "Mother: high school &  &           `mean_dum_m_educ_2'               & &        -                \\" _n
 	file write stats "Mother: college incomplete &  &           `mean_dum_m_educ_3'               & &       -                 \\" _n
 	file write stats "Mother: college + & &                    `mean_dum_m_educ_4'      & &          -             \\" _n
