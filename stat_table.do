@@ -51,10 +51,10 @@ use "$db/data_estimate", clear
 
 
 *Outcomes
-egen TVIP = rowmean(TVIP_age_2 TVIP_age_3)
-qui: sum TVIP
-local mean_TVIP = string(round(r(mean),.001),"%9.3f")
-local sd_TVIP = string(round(r(sd),.001),"%9.3f")
+// egen TVIP = rowmean(TVIP_age_2 TVIP_age_3)
+// qui: sum TVIP
+// local mean_TVIP = string(round(r(mean),.001),"%9.3f")
+// local sd_TVIP = string(round(r(sd),.001),"%9.3f")
 
 qui: sum d_work_18
 local mean_d_work_18 = string(round(r(mean),.1),"%9.3f")
@@ -108,7 +108,7 @@ foreach var in  dum_young_siblings risk f_home{
 
 count 
 local n_obs = r(N)
-
+local n_obs = string(r(N),"%42.0fc")
 
 
 **Table**
@@ -118,7 +118,7 @@ file open stats using "$results/stat_table.tex", write replace
 	file write stats "&  & \multicolumn{1}{c}{Mean} &                      & \multicolumn{1}{c}{SD} \\" _n
 	file write stats "\midrule" _n
 	file write stats "\textbf{Outcomes}         &  &  &  &    \\" _n
-	file write stats "TADI (in \$ \sigma \$)      &  &        `mean_TVIP'        & &         `sd_TVIP'               \\" _n
+	*file write stats "TADI (in \$ \sigma \$)      &  &        `mean_TVIP'        & &         `sd_TVIP'               \\" _n
 	file write stats "Earnings (monthly USD)      &  &           `mean_wage_18'                & &        `sd_wage_18'                 \\" _n
 	file write stats "Hours worked (weekly)      &  &           `mean_hours_w_18'                & &        `sd_hours_w_18'                 \\" _n
 	file write stats "Employed      &  &            `mean_d_work_18'              & &         `sd_d_work_18'               \\" _n
