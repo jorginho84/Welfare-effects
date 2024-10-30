@@ -34,6 +34,20 @@ else if "`user'"=="Antonia"{
 
 
 	}
+	
+	if "`c(username)'" == "Cecilia"{
+	global des		"C:\Users\Cecilia\Mi unidad\Uandes\Jardines_elpi"
+	global db 		"$des/Data"
+	global results 	"$des/Tex/figures_tables"
+	global codes 	"C:\Users\Cecilia\Documents\GitHub\Welfare-effects"
+}
+
+	if "`c(username)'" == "ccorrea"{
+	global des		"G:\Mi unidad\Uandes\Jardines_elpi"
+	global db 		"$des/Data"
+	global results 	"$des/Tex/figures_tables"
+	global codes 	"C:\Users\ccorrea\OneDrive - Universidad de los Andes\Documentos\GitHub\Welfare-effects"
+}
 
 clear all
 set more off
@@ -50,18 +64,11 @@ keep if cohort <= 2011
 *---------PREP---------*
 *----------------------*
 
-foreach var in wage hours_w d_work{
-	egen `var'_18=rowmean( `var'_t7 `var'_t8)
-	*gen `var'_18 = `var'_t7
-}
-
 
 *Below/above median of HH income at baseline
-qui: sum income_t0, d
-scalar median_i = r(p50)
 gen cat_income = .
-replace cat_income = 1 if income_t0 <= median_i
-replace cat_income = 2 if income_t0 > median_i & income_t0 != .
+replace cat_income = 1 if percentile_income_h <= 50
+replace cat_income = 2 if percentile_income_h > 50 & percentile_income_h != .
 
 
 
@@ -76,6 +83,7 @@ foreach depvar in "wage_18" "hours_w_18" "d_work_18"{
 	
 	*1. No controls
 	qui: reg `depvar' min_center_34, vce(robust)
+	local n_`depvar'_`nreg' = string(e(N),"%42.0fc")
 	local beta_`depvar'_`nreg' = string(round(-_b[min_center_34],.001),"%9.3f")
 	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_34],.001),"%9.3f")
 	local tstat = _b[min_center_34] / _se[min_center_34]
@@ -98,6 +106,7 @@ foreach depvar in "wage_18" "hours_w_18" "d_work_18"{
 	
 	*2. No Fes
 	qui: reg `depvar' min_center_34 $controls, vce(robust)
+	local n_`depvar'_`nreg' = string(e(N),"%42.0fc")
 	local beta_`depvar'_`nreg' = string(round(-_b[min_center_34],.001),"%9.3f")
 	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_34],.001),"%9.3f")
 	local tstat = _b[min_center_34] / _se[min_center_34]
@@ -120,6 +129,7 @@ foreach depvar in "wage_18" "hours_w_18" "d_work_18"{
 	
 	*3. Time and groups FEs
 	qui: reghdfe `depvar' min_center_34 $controls, absorb(cohort comuna_cod) vce(robust)
+	local n_`depvar'_`nreg' = string(e(N),"%42.0fc")
 	local beta_`depvar'_`nreg' = string(round(-_b[min_center_34],.001),"%9.3f")
 	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_34],.001),"%9.3f")
 	local tstat = _b[min_center_34] / _se[min_center_34]
@@ -143,6 +153,7 @@ foreach depvar in "wage_18" "hours_w_18" "d_work_18"{
 	
 	*4. Full FEx
 	qui: reghdfe `depvar' min_center_34 $controls, absorb(cohort#comuna_cod) vce(robust)
+	local n_`depvar'_`nreg' = string(e(N),"%42.0fc")
 	local beta_`depvar'_`nreg' = string(round(-_b[min_center_34],.001),"%9.3f")
 	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_34],.001),"%9.3f")
 	local tstat = _b[min_center_34] / _se[min_center_34]
@@ -208,6 +219,9 @@ file open itts using "$results/fe_estimates_lm.tex", write replace
 	file write itts "    Control variables         &  &                                &  & No   & Yes & Yes &   Yes  \\" _n
 	file write itts "  	 Cohort and Municipality FEs         &  &                   &  & No  & No & Yes & Yes  \\" _n
 	file write itts "    Cohort\$\times\$ Municipality FEs         &  &                 &  & No   & No  & No  &   Yes  \\" _n
+	
+	file write itts "\midrule" _n
+	file write itts "    N         &  &                                &  & `n_wage_18_1'   & `n_wage_18_2' & `n_wage_18_3' &   `n_wage_18_4'  \\"
 	
 	            
 	file write itts "\bottomrule" _n
