@@ -1782,26 +1782,32 @@ egen CBCL_age_`x'=std(CBCL_age_`x'_aux)
 
 drop *_age_*_aux
 
-
-*Keeping if (1) has distance (2) has public_34 (3) has d_work (4) has all controls vars. 
-
-keep if min_center_34 != .
-keep if public_34 != .
-global controls m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home
-foreach v of varlist $controls{
-	drop if `v' == .
-}
-
 foreach var in d_work wage hours_w{
 	di "`var'"
-	egen `var'_18=rowmean( `var'_t7 `var'_t8)
-	keep if `var'_18 != .
+	egen `var'_18=rowmean( `var'_t6 `var'_t7)
 }
+
+*Keeping if (1) has distance (2) has public_34 (3) has d_work (4) has all controls vars.
+*generate variable final = 1 if observation belongs to final sample
+gen final = 1
+
+foreach var in min_center_34 public_34 d_work_18 wage_18 hours_w_18{
+	replace final = 0 if `var' == .
+}
+global controls m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home
+foreach v of varlist $controls{
+	replace final = 0 if `v' == .
+} 
+keep if final == 1
+drop final
 
 save "$db/data_estimate", replace
 
 
 
+
+ 
+replace final = 0 if  d_work_18 == .
 
 
 
