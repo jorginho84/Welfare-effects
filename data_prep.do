@@ -1598,6 +1598,8 @@ replace min_center_34 = min_center_34/1000
 // replace min_center_pregnant_02 = min_center_pregnant_02/1000
 replace min_center_pregnant_34 = min_center_pregnant_34/1000
 
+replace min_center_NM = min_center_NM/1000
+
 
 *Tests
 foreach variable in "TVIP_t" "CBCL2_t" "CBCL1_t" "BATTELLE_t"{
@@ -1801,13 +1803,15 @@ foreach v of varlist $controls{
 keep if final == 1
 drop final
 
+*keeping final sample e(sample) = 1 for all LM models.
+// reghdfe wage_18 min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
+// keep if e(sample) == 1
+
 save "$db/data_estimate", replace
 
 
 
 
- 
-replace final = 0 if  d_work_18 == .
 
 
 

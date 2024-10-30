@@ -35,7 +35,7 @@ else if "`user'"=="Antonia"{
 
 	}
 	
-	if "`c(username)'" == "Cecilia"{
+if "`c(username)'" == "Cecilia" {
 	global des		"C:\Users\Cecilia\Mi unidad\Uandes\Jardines_elpi"
 	global db 		"$des/Data"
 	global results 	"$des/Tex/figures_tables"
@@ -49,6 +49,7 @@ else if "`user'"=="Antonia"{
 	global codes 	"C:\Users\ccorrea\OneDrive - Universidad de los Andes\Documentos\GitHub\Welfare-effects"
 }
 
+
 clear all
 set more off
 program drop _all
@@ -57,13 +58,13 @@ set seed 100
 use "$db/data_estimate", clear
 
 global controls i.m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home
-keep if cohort <= 2011
+// keep if cohort <= 2011
+
 
 
 *----------------------*
 *---------PREP---------*
 *----------------------*
-
 
 *Below/above median of HH income at baseline
 gen cat_income = .
@@ -77,16 +78,15 @@ foreach depvar in "wage_18" "hours_w_18" "d_work_18"{
 	qui: summarize `depvar'
 	local mean_`depvar' = string(round(r(mean),.001),"%9.3f")
 	
-	
-
-	local nreg = 1
+		local nreg = 1
 	
 	*1. No controls
-	qui: reg `depvar' min_center_34, vce(robust)
-	local n_`depvar'_`nreg' = string(e(N),"%42.0fc")
-	local beta_`depvar'_`nreg' = string(round(-_b[min_center_34],.001),"%9.3f")
-	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_34],.001),"%9.3f")
-	local tstat = _b[min_center_34] / _se[min_center_34]
+	 reg `depvar' min_center_NM, vce(robust)
+	 local n_`depvar'_`nreg' = string(e(N),"%42.0fc")
+	local beta_`depvar'_`nreg' = string(round(-_b[min_center_NM],.001),"%9.3f")
+	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_NM],.001),"%9.3f")
+	local tstat = _b[min_center_NM] / _se[min_center_NM]
+
 	local pval = 2*(1-normal(abs(`tstat')))
 	*di `pval'
 	if `pval' <= 0.01{
@@ -105,11 +105,12 @@ foreach depvar in "wage_18" "hours_w_18" "d_work_18"{
 	local nreg = `nreg' + 1
 	
 	*2. No Fes
-	qui: reg `depvar' min_center_34 $controls, vce(robust)
+	 reg `depvar' min_center_NM $controls, vce(robust)
 	local n_`depvar'_`nreg' = string(e(N),"%42.0fc")
-	local beta_`depvar'_`nreg' = string(round(-_b[min_center_34],.001),"%9.3f")
-	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_34],.001),"%9.3f")
-	local tstat = _b[min_center_34] / _se[min_center_34]
+	local beta_`depvar'_`nreg' = string(round(-_b[min_center_NM],.001),"%9.3f")
+	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_NM],.001),"%9.3f")
+	local tstat = _b[min_center_NM] / _se[min_center_NM]
+
 	local pval = 2*(1-normal(abs(`tstat')))
 	*di `pval'
 	if `pval' <= 0.01{
@@ -128,11 +129,12 @@ foreach depvar in "wage_18" "hours_w_18" "d_work_18"{
 	local nreg = `nreg' + 1
 	
 	*3. Time and groups FEs
-	qui: reghdfe `depvar' min_center_34 $controls, absorb(cohort comuna_cod) vce(robust)
+	reghdfe `depvar' min_center_NM $controls, absorb(cohort comuna_cod) vce(robust)
 	local n_`depvar'_`nreg' = string(e(N),"%42.0fc")
-	local beta_`depvar'_`nreg' = string(round(-_b[min_center_34],.001),"%9.3f")
-	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_34],.001),"%9.3f")
-	local tstat = _b[min_center_34] / _se[min_center_34]
+	local beta_`depvar'_`nreg' = string(round(-_b[min_center_NM],.001),"%9.3f")
+	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_NM],.001),"%9.3f")
+	local tstat = _b[min_center_NM] / _se[min_center_NM]
+
 	local pval = 2*(1-normal(abs(`tstat')))
 	*di `pval'
 	if `pval' <= 0.01{
@@ -152,11 +154,12 @@ foreach depvar in "wage_18" "hours_w_18" "d_work_18"{
 	local nreg = `nreg' + 1
 	
 	*4. Full FEx
-	qui: reghdfe `depvar' min_center_34 $controls, absorb(cohort#comuna_cod) vce(robust)
+	 reghdfe `depvar' min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
 	local n_`depvar'_`nreg' = string(e(N),"%42.0fc")
-	local beta_`depvar'_`nreg' = string(round(-_b[min_center_34],.001),"%9.3f")
-	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_34],.001),"%9.3f")
-	local tstat = _b[min_center_34] / _se[min_center_34]
+	local beta_`depvar'_`nreg' = string(round(-_b[min_center_NM],.001),"%9.3f")
+	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_NM],.001),"%9.3f")
+	local tstat = _b[min_center_NM] / _se[min_center_NM]
+
 	local pval = 2*(1-normal(abs(`tstat')))
 	*di `pval'
 	if `pval' <= 0.01{
@@ -210,7 +213,7 @@ file open itts using "$results/fe_estimates_lm.tex", write replace
 			
 		}
 		else{
-		file write itts " &  &                                &  &         &        &        &              &             \\" _n
+		file write itts " &  &                                &  &         &        &        &                         \\" _n
 		}
 		local x = `x' + 1
 	}
@@ -229,7 +232,7 @@ file open itts using "$results/fe_estimates_lm.tex", write replace
 file close itts
 
 
-
+stop
 
 /*--------------------------------------------------------------------------------*/
 /*----------------   Effects across income       ----------------------------------*/
@@ -250,10 +253,10 @@ foreach depvar in "wage_18" "hours_w_18" "d_work_18"{
 
 
 	forvalues x = 1/2{
-		qui: reghdfe `depvar' min_center_34 $controls if cat_income == `x', absorb(cohort#comuna_cod) vce(robust)
-		local beta_takeup_`x' = -_b[min_center_34]*100
-		local ub_takeup_`x' = (-_b[min_center_34] + _se[min_center_34]*invnormal(0.975))*100
-		local lb_takeup_`x' = (-_b[min_center_34] - _se[min_center_34]*invnormal(0.975))*100
+		qui: reghdfe `depvar' min_center_NM $controls if cat_income == `x', absorb(cohort#comuna_cod) vce(robust)
+		local beta_takeup_`x' = -_b[min_center_NM]*100
+		local ub_takeup_`x' = (-_b[min_center_NM] + _se[min_center_NM]*invnormal(0.975))*100
+		local lb_takeup_`x' = (-_b[min_center_NM] - _se[min_center_NM]*invnormal(0.975))*100
 			
 	}
 	
