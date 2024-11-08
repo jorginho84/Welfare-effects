@@ -16,6 +16,12 @@ else if "`user'" == "Pablo"{
 	global res "C:\Users\Pablo\Dropbox\Datos Jardines Chile\Results"
 }
 
+	if "`c(username)'" == "ccorrea"{
+	global dir		"G:\Mi unidad\Uandes\Jardines_elpi"
+	global db 		"$des/Data"
+	global results 	"$des/Tex/figures_tables"
+	global codes 	"C:\Users\ccorrea\OneDrive - Universidad de los Andes\Documentos\GitHub\Welfare-effects"
+}
 
 	
 
@@ -40,9 +46,10 @@ else if "`user'" == "Pablo"{
 		   graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white)) ///
 		   plotregion(fcolor(white) lcolor(white)  ifcolor(white) ilcolor(white)) ///
 		   scheme(s2mono) scale(1.2) ///
-		   legend(label (1 MINEDUC) label (2 INTEGRA) label (3 JUNJI))
+		   legend(label (1 MINEDUC) label (2 INTEGRA) label (3 JUNJI) position(12))
 
-		   graph export "$res/Descriptive/n_jardines.pdf", as(pdf) replace
+// 		   graph export "$res/Descriptive/n_jardines.pdf", as(pdf) replace
+			graph export "$results/n_jardines.pdf", as(pdf) replace
 		   
 		restore
 stop!!
