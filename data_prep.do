@@ -1804,8 +1804,8 @@ keep if final == 1
 drop final
 
 *keeping final sample e(sample) = 1 for all LM models.
-// reghdfe wage_18 min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
-// keep if e(sample) == 1
+reghdfe wage_18 min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
+keep if e(sample) == 1
 
 save "$db/data_estimate", replace
 
