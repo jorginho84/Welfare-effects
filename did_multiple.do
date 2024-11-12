@@ -29,9 +29,24 @@ else if "`user'"=="Antonia"{
 	cd "$des"
 	global db "$des/Data"
 	global results "$des/resultados-anto/public_34/mprte"
-
-
 	}
+
+	if "`c(username)'" == "Cecilia" {
+	global des		"C:\Users\Cecilia\Mi unidad\Uandes\Jardines_elpi"
+	global db 		"$des/Data"
+	global results 	"$des/Tex/figures_tables"
+	global codes 	"C:\Users\Cecilia\Documents\GitHub\Welfare-effects"
+}
+
+	if "`c(username)'" == "ccorrea"{
+	global des		"G:\Mi unidad\Uandes\Jardines_elpi"
+	global db 		"$des/Data"
+	global results 	"$des/Tex/figures_tables"
+	global codes 	"C:\Users\ccorrea\OneDrive - Universidad de los Andes\Documentos\GitHub\Welfare-effects"
+}
+
+
+cd "$des"
 
 clear all
 set more off
@@ -46,37 +61,35 @@ qui: tabulate m_educ, gen(m_educ)
 global controls m_educ2 m_educ3 m_educ4 WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home
 
 keep if cohort <= 2010
-drop if min_center_34 == . | public_34 == .
+drop if min_center_NM == . | public_34 == .
 
 
 *----------------------------------------------------------*
 *---------PREP---------------------------------------------*
 *----------------------------------------------------------*
-
-foreach var in wage hours_w d_work{
-	egen `var'_18=rowmean( `var'_t7 `var'_t8)
-	*gen `var'_18 = `var'_t7
-}
-
+//
+// foreach var in wage hours_w d_work{
+// 	egen `var'_18=rowmean( `var'_t7 `var'_t8)
+// 	*gen `var'_18 = `var'_t7
+// }
+//
 egen TVIP = rowmean(TVIP_age_2 TVIP_age_3)
 
 
 *Below/above median of HH income at baseline
-qui: sum income_t0, d
-scalar median_i = r(p50)
 gen cat_income = .
-replace cat_income = 0 if income_t0 <= median_i
-replace cat_income = 1 if income_t0 > median_i & income_t0 != .
+replace cat_income = 1 if percentile_income_h <= 50
+replace cat_income = 2 if percentile_income_h > 50 & percentile_income_h != .
 
 foreach vars in "TVIP" "wage_18" "hours_w_18" "d_work_18" "min_center_34" "public_34" "cat_income"{
 	drop if `vars' == .
 }
 
 gen one_1 = 1
-collapse (mean) TVIP wage_18 hours_w_18 d_work_18 min_center_34 public_34 $controls cat_income (count) weight_n = min_center_34, by (cohort comuna_cod)
+collapse (mean) TVIP wage_18 hours_w_18 d_work_18 min_center_NM public_34 $controls cat_income (count) weight_n = min_center_NM, by (cohort comuna_cod)
 
 xtset comuna_cod cohort
-gen d_min = min_center_34 - L1.min_center_34
+gen d_min = min_center_NM - L1.min_center_NM
 sum d_min
 count if d_min == 0
 
