@@ -1789,6 +1789,50 @@ foreach var in d_work wage hours_w{
 	egen `var'_18=rowmean( `var'_t6 `var'_t7)
 }
 
+
+*Test score variables, by age
+
+*BATELLE
+forval d = 0/11 {
+	gen batelle_age`d'_t = BATTELLE_t_2010 if birth_year == 2010 - `d'
+	replace batelle_age`d'_t = BATTELLE_t_2012 if birth_year == 2012 - `d' & batelle_age`d'_t == .
+	replace batelle_age`d'_t = BATTELLE_t_2017  if birth_year == 2017 - `d' & batelle_age`d'_t == .
+}
+	
+*TVIP
+forval d = 0/11 {
+	gen tvip_age`d'_t = TVIP_t_2010 if birth_year == 2010 - `d'
+	replace tvip_age`d'_t = TVIP_t_2012 if birth_year == 2012 - `d' & tvip_age`d'_t == .
+	replace tvip_age`d'_t = TVIP_t_2017  if birth_year == 2017 - `d' & tvip_age`d'_t == .
+}
+
+*CBCL
+forval d = 0/11 {
+	gen cbcl1_age`d'_t = CBCL1_t_2010 if birth_year == 2010 - `d'
+	replace cbcl1_age`d'_t = CBCL1_t_2012 if birth_year == 2012 - `d' & cbcl1_age`d'_t == .
+	replace cbcl1_age`d'_t = CBCL1_t_2017  if birth_year == 2017 - `d' & cbcl1_age`d'_t == .
+}
+
+*CBCL2
+forval d = 0/11 {
+	gen cbcl2_age`d'_t = CBCL2_t_2012 if birth_year == 2012 - `d'
+	replace cbcl2_age`d'_t = CBCL2_t_2017  if birth_year == 2017 - `d' & cbcl2_age`d'_t == .
+}
+
+*Battelle lo normalizo todos los testscores
+forval d = 0/11{
+	qui: sum batelle_age`d'_t
+	gen batelle_age`d'_z = (batelle_age`d'_t - r(mean))/r(sd)
+	qui: sum tvip_age`d'_t
+	gen tvip_age`d'_z = (tvip_age`d'_t - r(mean))/r(sd)
+	qui: sum cbcl1_age`d'_t
+	gen cbcl1_age`d'_z = (cbcl1_age`d'_t - r(mean))/r(sd)
+	qui: sum cbcl2_age`d'_t
+	gen cbcl2_age`d'_z = (cbcl2_age`d'_t - r(mean))/r(sd)
+}
+
+
+
 *Keeping if (1) has distance (2) has public_34 (3) has d_work (4) has all controls vars.
 *generate variable final = 1 if observation belongs to final sample
 gen final = 1
@@ -1804,8 +1848,10 @@ keep if final == 1
 drop final
 
 *keeping final sample e(sample) = 1 for all LM models.
+foreach v of varlist d_work_18 wage_18 hours_w_18{
 reghdfe wage_18 min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
 keep if e(sample) == 1
+}
 
 save "$db/data_estimate", replace
 
