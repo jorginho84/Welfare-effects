@@ -87,6 +87,8 @@ foreach depvar in "wage_18" "hours_w_18" "d_work_18"{
 	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_NM],.001),"%9.3f")
 	local tstat = _b[min_center_NM] / _se[min_center_NM]
 
+	di "beta = `beta_`depvar'_`nreg'' `(se_beta_`depvar'_`nreg')'"
+	
 	local pval = 2*(1-normal(abs(`tstat')))
 	*di `pval'
 	if `pval' <= 0.01{
@@ -111,6 +113,8 @@ foreach depvar in "wage_18" "hours_w_18" "d_work_18"{
 	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_NM],.001),"%9.3f")
 	local tstat = _b[min_center_NM] / _se[min_center_NM]
 
+	di "beta = `beta_`depvar'_`nreg'' `(se_beta_`depvar'_`nreg')'"
+	
 	local pval = 2*(1-normal(abs(`tstat')))
 	*di `pval'
 	if `pval' <= 0.01{
@@ -134,6 +138,8 @@ foreach depvar in "wage_18" "hours_w_18" "d_work_18"{
 	local beta_`depvar'_`nreg' = string(round(-_b[min_center_NM],.001),"%9.3f")
 	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_NM],.001),"%9.3f")
 	local tstat = _b[min_center_NM] / _se[min_center_NM]
+	
+	di "beta = `beta_`depvar'_`nreg'' `(se_beta_`depvar'_`nreg')'"
 
 	local pval = 2*(1-normal(abs(`tstat')))
 	*di `pval'
@@ -160,6 +166,8 @@ foreach depvar in "wage_18" "hours_w_18" "d_work_18"{
 	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_NM],.001),"%9.3f")
 	local tstat = _b[min_center_NM] / _se[min_center_NM]
 
+	di "beta = `beta_`depvar'_`nreg'' `(se_beta_`depvar'_`nreg')'"
+	
 	local pval = 2*(1-normal(abs(`tstat')))
 	*di `pval'
 	if `pval' <= 0.01{
@@ -223,8 +231,8 @@ file open itts using "$results/fe_estimates_lm.tex", write replace
 	file write itts "  	 Cohort and Municipality FEs         &  &                   &  & No  & No & Yes & Yes  \\" _n
 	file write itts "    Cohort\$\times\$ Municipality FEs         &  &                 &  & No   & No  & No  &   Yes  \\" _n
 	
-	*file write itts "\midrule" _n
-	*file write itts "    N         &  &                                &  & `n_wage_18_1'   & `n_wage_18_2' & `n_wage_18_3' &   `n_wage_18_4'  \\"
+	file write itts "\midrule" _n
+	file write itts "    N         &  &                                &  & `n_wage_18_1'   & `n_wage_18_2' & `n_wage_18_3' &   `n_wage_18_4'  \\"
 	
 	            
 	file write itts "\bottomrule" _n

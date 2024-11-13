@@ -92,9 +92,7 @@ foreach elpi_year in 2010 2012{
 di "_________________________________________________________________________"
 di "- Var= dist_min_; ELPI year= `elpi_year'; year= `y'; Type of center= 34 -"
 di "_________________________________________________________________________"
-		
-		local elpi_year = 2010
-		local y = 2009
+
 //		
 		
 	use `est_aux', clear
