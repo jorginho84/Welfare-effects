@@ -1246,9 +1246,9 @@ forvalues t=1/10{
 
 gen ocu_t01 = .
 gen ocu_t02 = .
-gen wage_baseline = .
+gen wage_t01 = .
 gen wage_t02 = .
-gen hours_w_baseline = .
+gen hours_w_t01 = .
 gen hours_w_t02 = .
 
 ************************************************************************************************************
@@ -1329,6 +1329,8 @@ forval t=1/10{             // end date within job period                        
 	replace tramo_t`t'=1 if tramo_t`t'[_n-1]==1 & tramo_t`t'[_n+1]==1 //tramos larger than job period 
 }
 
+gen tramo_t01 = 1 if job_start <= bday & job_end > bday - 365 // one year pre-birth
+gen tramo_t02 = 1 if job_start <= bday - 365 //more than one year previus to the birth 
 **********************************************
 *weights 
 
@@ -1370,13 +1372,22 @@ forval t = 1/10{
 	replace hours_w_t`t' = d13_  if tramo_t`t' == 1
 	}
 
+
+foreach t in "01" "02"{
+	replace ocu_t`t'	 = d2_	 if tramo_t`t' == 1
+	replace wage_t`t'	 = d12_  if tramo_t`t' == 1
+	*di "here"
+	*replace wage_t`t'	 = d12t_ if tramo_t`t' == 1 & wage_t`t' == .
+	replace hours_w_t`t' = d13_  if tramo_t`t' == 1
+	}
+
+
 forvalues t=1/10{
 	gen d_work_t`t' = .
 	replace d_work_t`t' = 1 if ocu_t`t' == 1
 	replace d_work_t`t' = 0 if ocu_t`t' >= 2 & ocu_t`t' < 9
 	replace d_work_t`t' = . if ocu_t`t' == 9
 	label var d_work_t`t' "Madre trabajaba en tramo `t'"
-	
 }
 
 label define ocu_lbl  1 "working" 2 "unemployed" 3 "searching for 1st time" ///
@@ -1396,8 +1407,6 @@ forvalues t=1/2{
  	label var d_work_t0`t' "Mother worked `t' year before birth "
 }
 
-gen lwage_baseline = ln(wage_baseline + 1)
-
 
 // preserve
 **********************************************************************************
@@ -1415,6 +1424,20 @@ forval t=1/10{
 // 	preserve
 }
 
+	preserve //Baseline
+	keep folio d_work_t01 wage_t01 hours_w_t01
+	collapse (mean) d_work_t01 wage_t01 hours_w_t01, by(folio)
+
+	tempfile using tramo_t01
+	save `tramo_t01'
+	restore
+	preserve //2 years before birth
+	keep folio d_work_t02 wage_t02 hours_w_t02
+	collapse (mean) d_work_t02 (last) wage_t02 hours_w_t02, by(folio)
+
+	tempfile using tramo_t02
+	save `tramo_t02'
+	restore
 
 use `tramo_t1', clear
 merge 1:1 folio using `tramo_t2'
@@ -1435,7 +1458,10 @@ merge 1:1 folio using `tramo_t9'
 rename _merge merge19
 merge 1:1 folio using `tramo_t10'
 rename _merge merge10
-
+merge 1:1 folio using `tramo_t01'
+rename _merge merge01
+merge 1:1 folio using `tramo_t02'
+rename _merge merge02
 
 **********************************************************************************
 
@@ -1443,6 +1469,10 @@ rename _merge merge10
 forvalues t=1/10{
 	replace d_work_t`t'=1 if d_work_t`t' > 0 & d_work_t`t'!=.	
 }
+replace d_work_t01=1 if d_work_t01 > 0 & d_work_t01!=.	
+replace d_work_t02=1 if d_work_t02 > 0 & d_work_t02!=.	
+rename (wage_t01 hours_w_t01) (wage_baseline hours_w_baseline)
+gen lwage_baseline = ln(wage_baseline + 1)
 
 merge 1:1 folio using `data_elpi_aux'
 // use `data_elpi_aux', clear
