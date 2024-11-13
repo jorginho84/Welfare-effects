@@ -60,45 +60,6 @@ global controls i.m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_ho
 keep if cohort <= 2011
 
 
-*BATELLE
-forval d = 0/11 {
-	gen batelle_age`d'_t = BATTELLE_t_2010 if birth_year == 2010 - `d'
-	replace batelle_age`d'_t = BATTELLE_t_2012 if birth_year == 2012 - `d' & batelle_age`d'_t == .
-	replace batelle_age`d'_t = BATTELLE_t_2017  if birth_year == 2017 - `d' & batelle_age`d'_t == .
-}
-	
-*TVIP
-forval d = 0/11 {
-	gen tvip_age`d'_t = TVIP_t_2010 if birth_year == 2010 - `d'
-	replace tvip_age`d'_t = TVIP_t_2012 if birth_year == 2012 - `d' & tvip_age`d'_t == .
-	replace tvip_age`d'_t = TVIP_t_2017  if birth_year == 2017 - `d' & tvip_age`d'_t == .
-}
-
-*CBCL
-forval d = 0/11 {
-	gen cbcl1_age`d'_t = CBCL1_t_2010 if birth_year == 2010 - `d'
-	replace cbcl1_age`d'_t = CBCL1_t_2012 if birth_year == 2012 - `d' & cbcl1_age`d'_t == .
-	replace cbcl1_age`d'_t = CBCL1_t_2017  if birth_year == 2017 - `d' & cbcl1_age`d'_t == .
-}
-
-*CBCL2
-forval d = 0/11 {
-	gen cbcl2_age`d'_t = CBCL2_t_2012 if birth_year == 2012 - `d'
-	replace cbcl2_age`d'_t = CBCL2_t_2017  if birth_year == 2017 - `d' & cbcl2_age`d'_t == .
-}
-
-*Battelle lo normalizo!! & todos los testscores
-forval d = 0/11{
-	qui: sum batelle_age`d'_t
-	gen batelle_age`d'_z = (batelle_age`d'_t - r(mean))/r(sd)
-	qui: sum tvip_age`d'_t
-	gen tvip_age`d'_z = (tvip_age`d'_t - r(mean))/r(sd)
-	qui: sum cbcl1_age`d'_t
-	gen cbcl1_age`d'_z = (cbcl1_age`d'_t - r(mean))/r(sd)
-	qui: sum cbcl2_age`d'_t
-	gen cbcl2_age`d'_z = (cbcl2_age`d'_t - r(mean))/r(sd)
-}
-
 /*
 gen batelle = .
 gen tvip = .
@@ -454,24 +415,6 @@ file close itts
 **#  by edad
 mat A = [3,5\6,11]
 
-/*
-foreach m in 1 2 {
-	local y1 = A[`m',1]
-	local y2 = A[`m',2]
-	
-gen batelle`y1' = .
-gen tvip`y1' = .
-gen cbcl`y1' = .
-	//Se toma el valor del test por el último resultado que tenga
-forval d = `y2'(-1)`y1'{ 
-	replace batelle`y1' = batelle_age`d'_z if batelle`y1' == .
-	replace tvip`y1' = tvip_age`d'_z if tvip`y1' == .
-	replace cbcl`y1' = cbcl1_age`d'_z if cbcl`y1' == .
-	replace cbcl`y1' = cbcl2_age`d'_z if cbcl`y1' == .
-}
-}
-*/
-
 *En caso de que niño/a tenga dos valores en tescore, se promedian.
 *test3 == edad 3 a 5. test6 == edades 6 +
 egen batelle3 = rowmean(batelle_age3_z batelle_age4_z batelle_age5_z)
@@ -643,6 +586,68 @@ file close itts
 
 }
 
+**# Efecto testscores por género
+*Names for table
+local x = 1
+foreach names in "Batelle" "TVIP" "CBCL" {
+	local name_`x' = "`names'"
+	local x = `x' + 1
+	
+}
+
+local xx = 1
+foreach depvar in "batelle" "tvip" "cbcl"{
+	preserve
+
+
+	forvalues x = 1/2{
+		reghdfe `depvar' min_center_NM $controls if gender == `x', absorb(cohort#comuna_cod) vce(robust)
+		local beta_takeup_`x' = -_b[min_center_NM] //Por qué se multiplica por 100??
+		local ub_takeup_`x' = (-_b[min_center_NM] + _se[min_center_NM]*invnormal(0.975))
+		local lb_takeup_`x' = (-_b[min_center_NM] - _se[min_center_NM]*invnormal(0.975))
+			
+	}
+	
+	
+	clear
+	set obs  3
+	gen effects = .
+	gen lb = .
+	gen ub = .
+	replace effects = `beta_takeup_1' if _n == 1
+	replace lb = `lb_takeup_1' if _n == 1
+	replace ub = `ub_takeup_1' if _n == 1
+
+	replace effects = `beta_takeup_2' if _n == 3
+	replace lb = `lb_takeup_2' if _n == 3
+	replace ub = `ub_takeup_2' if _n == 3
+
+	egen x = seq()
+
+	twoway (bar effects x, barwidth(1.2) color(black*.7) fintensity(.5)  lwidth(0.4) ) ///
+	(scatter effects x, msymbol(circle) mcolor(black*.7) mfcolor(black*.7)) ///
+		(rcap ub lb x, lpattern(solid) lcolor(black*.7) ), ///
+		ytitle("Effect on `name_`xx''")  xtitle("") legend(off) ///
+		xlabel(1 "Male" 3 "Female", noticks) ///
+		ylabel(, nogrid)  ///
+		graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white))  ///
+		plotregion(fcolor(white) lcolor(white)  ifcolor(white) ilcolor(white))  ///
+		scheme(s2mono) scale(1.7) yline(0, lpattern(dash) lcolor(black))
+		*text(1.7 1.6  "Overall effect = `beta_takeup' pp (S.E. = `se_beta_takeup')", place(e) color(blue*.8) size(medsmall)) ///
+		
+
+	graph export "$results/fe_estimates_`depvar'_gender.pdf", as(pdf) replace
+	
+	local xx = `xx' + 1
+	
+	restore
+
+
+}
+
+
+
+stp 
 **# Tabla efectos 3 a 5 años, 6 +, y total
 
 rename (batelle tvip cbcl) (batelle0 tvip0 cbcl0)
