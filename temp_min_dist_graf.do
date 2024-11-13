@@ -16,7 +16,8 @@ if "`c(username)'" == "ccorrea"{
 if "`c(username)'" == "Cecilia" {
 	global des		"C:\Users\Cecilia\Mi unidad\Uandes\Jardines_elpi"
 	global db 		"$des/Data"
-	global results 	"$des/results"
+// 	global results 	"$des/results"
+	global results 	"$des/Tex/figures_tables"
 	global codes 	"C:\Users\Cecilia\Documents\GitHub\Welfare-effects"
 }
 
@@ -133,7 +134,7 @@ reshape long dist_min , i(folio elpi_year min*) j(year)
 *Collapse data: first to have one obs per elpi_year 
 collapse (mean) dist_min, by(folio birth_date birth_year /*birth_month cohort**/ year min* )
 
-*Variable that shows distance to nearest center at 34.
+*Variable that shows distance to nearest center at NM.
 keep if year >= birth_year +2 & year <= birth_year +4 //Esto para tomar tramos 6 y 7 
 // Tramo 6: 2-3 años
 // Tramo 7: 3-4 años
@@ -148,11 +149,11 @@ tsset year
 
 tw (tsline dist_min, lpattern(solid) lwidth(thick))  , ylabel(0(500)2000, labsize(large)) ///
 ytitle("Distance to the nearest center (mt)", size(large)) xtitle("Year", size(large))  ///
-xlabel(#3, noticks)  ylabel(, nogrid) /// 
+xlabel(2008(2)2014, /*noticks*/ labsize(large))  ylabel(, nogrid) /// 
 graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white)) ///
 plotregion(fcolor(white) lcolor(white)  ifcolor(white) ilcolor(white)) ///
-scheme(s2mono) xlabel(2008(2)2013, labsize(large)) 
-graph export "$results/meandistance_year_24.png", as(png) replace 
+scheme(s2mono) /*xlabel(2008(2)2013, labsize(large))*/ 
+// graph export "$results/meandistance_year_24.png", as(png) replace 
 graph export "$results/meandistance_year_24.pdf", as(pdf) replace 
 
 
