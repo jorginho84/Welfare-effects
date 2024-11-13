@@ -90,16 +90,16 @@ forvalues x = 1/2{
 // 1.5 qué percentil es? en N de datos
 // Para explicar que la estimación es más ruidosa.
 
-qui xi : reghdfe min_center_34  $controls, absorb(cohort#comuna_cod) resid
+qui xi : reghdfe min_center_NM  $controls, absorb(cohort#comuna_cod) resid
 predict min_u_34, residuals
 
 foreach perc in 95 90 80 {
 	di `perc'
-_pctile min_center_34, p(`perc')
+_pctile min_center_NM, p(`perc')
 local pctile = r(r1)
 
 
-twoway (histogram min_center_34 if min_center_34 <= `pctile', lwidth(medium) lcolor(blue) fcolor(blue*.4) yaxis(1)) ///
+twoway (histogram min_center_NM if min_center_NM <= `pctile', lwidth(medium) lcolor(blue) fcolor(blue*.4) yaxis(1)) ///
 	(lpolyci public_34 min_u_34 if min_u_34 <= `pctile' & min_u_34>0, degree(1) 	///
 	 ciplot(rline)  lpattern(solid)   alcolor(black) alpattern(dash) clwidth(thick)  yaxis(2)), ///
 	 ytitle("Frequency") ytitle("Pr(Child care)",axis(2))  xtitle("Kms to closest center") ///
@@ -158,27 +158,27 @@ foreach corte in 30 40 50 60 80 {
 // 30 40 50 60 80 distintos cortes para ver si al diferencia marca el efecto.
 
 forvalues x = 1/2{
-	qui: reghdfe public_34 min_center_34 $controls if cat_income == `x', absorb(cohort#comuna_cod) vce(robust)
-	local beta_takeup_`x' = -_b[min_center_34]*100
-	local ub_takeup_`x' = (-_b[min_center_34] + _se[min_center_34]*invnormal(0.975))*100
-	local lb_takeup_`x' = (-_b[min_center_34] - _se[min_center_34]*invnormal(0.975))*100
+	qui: reghdfe public_34 min_center_NM $controls if cat_income == `x', absorb(cohort#comuna_cod) vce(robust)
+	local beta_takeup_`x' = -_b[min_center_NM]*100
+	local ub_takeup_`x' = (-_b[min_center_NM] + _se[min_center_NM]*invnormal(0.975))*100
+	local lb_takeup_`x' = (-_b[min_center_NM] - _se[min_center_NM]*invnormal(0.975))*100
 		
 }
 
 
 *Overall
-qui: reghdfe public_34 min_center_34 $controls, absorb(cohort#comuna_cod) vce(robust)
-local beta_takeup = string(round(-_b[min_center_34]*100,.1),"%9.1f")
-local se_beta_takeup = string(round(_se[min_center_34]*100,.1),"%9.1f")
+qui: reghdfe public_34 min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
+local beta_takeup = string(round(-_b[min_center_NM]*100,.1),"%9.1f")
+local se_beta_takeup = string(round(_se[min_center_NM]*100,.1),"%9.1f")
 
 
 
 *By income
 forvalues x = 1/2{
-	qui: reghdfe public_34 min_center_34 $controls if cat_income == `x', absorb(cohort#comuna_cod) vce(robust)
-	local beta_takeup_`x' = -_b[min_center_34]*100
-	local ub_takeup_`x' = (-_b[min_center_34] + _se[min_center_34]*invnormal(0.975))*100
-	local lb_takeup_`x' = (-_b[min_center_34] - _se[min_center_34]*invnormal(0.975))*100		
+	qui: reghdfe public_34 min_center_NM $controls if cat_income == `x', absorb(cohort#comuna_cod) vce(robust)
+	local beta_takeup_`x' = -_b[min_center_NM]*100
+	local ub_takeup_`x' = (-_b[min_center_NM] + _se[min_center_NM]*invnormal(0.975))*100
+	local lb_takeup_`x' = (-_b[min_center_NM] - _se[min_center_NM]*invnormal(0.975))*100		
 }
 
 drop cat_income
