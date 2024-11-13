@@ -77,11 +77,22 @@ forval d = 11(-1)0{
 egen batelle = rowmean(batelle_age*_z)
 egen tvip = rowmean(tvip_age*_z)
 egen cbcl = rowmean(cbcl*_age*_z)
+*By edad : En caso de que niño/a tenga dos valores en tescore, se promedian.
+*test3 == edad 3 a 5. test6 == edades 6 +
+egen batelle3 = rowmean(batelle_age3_z batelle_age4_z batelle_age5_z)
+egen tvip3 = rowmean(tvip_age3_z tvip_age4_z tvip_age5_z)
+egen cbcl3 = rowmean(cbcl*_age3_z cbcl*_age4_z cbcl*_age5_z)
+
+egen batelle6 = rowmean(batelle_age6_z batelle_age7_z batelle_age8_z batelle_age9_z batelle_age10_z batelle_age11_z)
+egen tvip6 = rowmean(tvip_age6_z tvip_age7_z tvip_age8_z tvip_age9_z tvip_age10_z tvip_age11_z)
+egen cbcl6 = rowmean(cbcl*_age6_z cbcl*_age7_z cbcl*_age8_z cbcl*_age9_z cbcl*_age10_z cbcl*_age11_z)
 
 *Below/above median of HH income at baseline
 gen cat_income = .
 replace cat_income = 1 if percentile_income_h <= 50
 replace cat_income = 2 if percentile_income_h > 50 & percentile_income_h != .
+
+
 
 **# All ages
 
@@ -98,7 +109,7 @@ foreach depvar in "batelle" "tvip" "cbcl"{
 	local nreg = 1
 	
 	*1. No controls
-	qui: reg `depvar' min_center_NM, vce(robust)
+	reg `depvar' min_center_NM, vce(robust)
 	local n_`depvar'_`nreg' = string(e(N),"%42.0fc")
 	local beta_`depvar'_`nreg' = string(round(-_b[min_center_NM],.001),"%9.3f")
 	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_NM],.001),"%9.3f")
@@ -121,7 +132,7 @@ foreach depvar in "batelle" "tvip" "cbcl"{
 	local nreg = `nreg' + 1
 	
 	*2. No Fes
-	qui: reg `depvar' min_center_NM $controls, vce(robust)
+	reg `depvar' min_center_NM $controls, vce(robust)
 	local n_`depvar'_`nreg' = string(e(N),"%42.0fc")
 	local beta_`depvar'_`nreg' = string(round(-_b[min_center_NM],.001),"%9.3f")
 	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_NM],.001),"%9.3f")
@@ -144,7 +155,7 @@ foreach depvar in "batelle" "tvip" "cbcl"{
 	local nreg = `nreg' + 1
 	
 	*3. Time and groups FEs
-	qui: reghdfe `depvar' min_center_NM $controls, absorb(cohort comuna_cod) vce(robust)
+	reghdfe `depvar' min_center_NM $controls, absorb(cohort comuna_cod) vce(robust)
 	local n_`depvar'_`nreg' = string(e(N),"%42.0fc")
 	local beta_`depvar'_`nreg' = string(round(-_b[min_center_NM],.001),"%9.3f")
 	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_NM],.001),"%9.3f")
@@ -168,7 +179,7 @@ foreach depvar in "batelle" "tvip" "cbcl"{
 	local nreg = `nreg' + 1
 	
 	*4. Full FEx
-	qui: reghdfe `depvar' min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
+	reghdfe `depvar' min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
 	local n_`depvar'_`nreg' = string(e(N),"%42.0fc")
 	local beta_`depvar'_`nreg' = string(round(-_b[min_center_NM],.001),"%9.3f")
 	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_NM],.001),"%9.3f")
@@ -415,16 +426,6 @@ file close itts
 **#  by edad
 mat A = [3,5\6,11]
 
-*En caso de que niño/a tenga dos valores en tescore, se promedian.
-*test3 == edad 3 a 5. test6 == edades 6 +
-egen batelle3 = rowmean(batelle_age3_z batelle_age4_z batelle_age5_z)
-egen tvip3 = rowmean(tvip_age3_z tvip_age4_z tvip_age5_z)
-egen cbcl3 = rowmean(cbcl*_age3_z cbcl*_age4_z cbcl*_age5_z)
-
-egen batelle6 = rowmean(batelle_age6_z batelle_age7_z batelle_age8_z batelle_age9_z batelle_age10_z batelle_age11_z)
-egen tvip6 = rowmean(tvip_age6_z tvip_age7_z tvip_age8_z tvip_age9_z tvip_age10_z tvip_age11_z)
-egen cbcl6 = rowmean(cbcl*_age6_z cbcl*_age7_z cbcl*_age8_z cbcl*_age9_z cbcl*_age10_z cbcl*_age11_z)
-
 
 foreach m in 1 2 {
 	local y1 = A[`m',1]
@@ -441,7 +442,7 @@ foreach depvar in "batelle`y1'" "tvip`y1'" "cbcl`y1'"{
 	local nreg = 1
 	
 	*1. No controls
-	qui: reg `depvar' min_center_NM, vce(robust)
+	reg `depvar' min_center_NM, vce(robust)
 	local n_`depvar'_`nreg' = string(e(N),"%42.0fc")
 	local beta_`depvar'_`nreg' = string(round(-_b[min_center_NM],.001),"%9.3f")
 	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_NM],.001),"%9.3f")
@@ -464,7 +465,7 @@ foreach depvar in "batelle`y1'" "tvip`y1'" "cbcl`y1'"{
 	local nreg = `nreg' + 1
 	
 	*2. No Fes
-	qui: reg `depvar' min_center_NM $controls, vce(robust)
+	reg `depvar' min_center_NM $controls, vce(robust)
 	local n_`depvar'_`nreg' = string(e(N),"%42.0fc")
 	local beta_`depvar'_`nreg' = string(round(-_b[min_center_NM],.001),"%9.3f")
 	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_NM],.001),"%9.3f")
@@ -487,7 +488,7 @@ foreach depvar in "batelle`y1'" "tvip`y1'" "cbcl`y1'"{
 	local nreg = `nreg' + 1
 	
 	*3. Time and groups FEs
-	qui: reghdfe `depvar' min_center_NM $controls, absorb(cohort comuna_cod) vce(robust)
+	reghdfe `depvar' min_center_NM $controls, absorb(cohort comuna_cod) vce(robust)
 	local n_`depvar'_`nreg' = string(e(N),"%42.0fc")
 	local beta_`depvar'_`nreg' = string(round(-_b[min_center_NM],.001),"%9.3f")
 	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_NM],.001),"%9.3f")
@@ -511,7 +512,7 @@ foreach depvar in "batelle`y1'" "tvip`y1'" "cbcl`y1'"{
 	local nreg = `nreg' + 1
 	
 	*4. Full FEx
-	qui: reghdfe `depvar' min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
+	reghdfe `depvar' min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
 	local n_`depvar'_`nreg' = string(e(N),"%42.0fc")
 	local beta_`depvar'_`nreg' = string(round(-_b[min_center_NM],.001),"%9.3f")
 	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_NM],.001),"%9.3f")
@@ -586,6 +587,87 @@ file close itts
 
 }
 
+foreach m in 1 2 {
+	local y1 = A[`m',1]
+	local y2 = A[`m',2]
+foreach depvar in "batelle`y1'" "tvip`y1'" "cbcl`y1'"{
+	
+	preserve //Nos quedamos con el N más chico de todas las regresiones (reg 4, de cada test)
+	qui: reghdfe `depvar' min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
+	keep if e(sample) == 1
+	
+	qui: summarize `depvar'
+	local mean_`depvar' = string(round(r(mean),.001),"%9.3f")
+}
+}
+
+**# Graf Efecto testscores short-long term
+mat A = [3,5\6,11]
+
+*Names for table
+local x = 1
+foreach names in "Batelle" "TVIP" "CBCL" {
+	local name_`x' = "`names'"
+	local x = `x' + 1
+	
+}
+
+local xx = 1
+foreach depvar in "batelle" "tvip" "cbcl"{
+// 	local depvar = "batelle"
+	preserve
+
+
+	forvalues x = 1/2{
+		local y1 = A[`x',1]
+		reghdfe `depvar'`y1' min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
+		local beta_takeup_`x' = -_b[min_center_NM] 
+		local ub_takeup_`x' = (-_b[min_center_NM] + _se[min_center_NM]*invnormal(0.975))
+		local lb_takeup_`x' = (-_b[min_center_NM] - _se[min_center_NM]*invnormal(0.975))
+			
+	}
+	
+	
+	clear
+	set obs  3
+	gen effects = .
+	gen lb = .
+	gen ub = .
+	replace effects = `beta_takeup_1' if _n == 1
+	replace lb = `lb_takeup_1' if _n == 1
+	replace ub = `ub_takeup_1' if _n == 1
+
+	replace effects = `beta_takeup_2' if _n == 3
+	replace lb = `lb_takeup_2' if _n == 3
+	replace ub = `ub_takeup_2' if _n == 3
+
+	egen x = seq()
+
+	twoway (bar effects x, barwidth(1.2) color(black*.7) fintensity(.5)  lwidth(0.4) ) ///
+	(scatter effects x, msymbol(circle) mcolor(black*.7) mfcolor(black*.7)) ///
+		(rcap ub lb x, lpattern(solid) lcolor(black*.7) ), ///
+		ytitle("Effect on `name_`xx''")  xtitle("") legend(off) ///
+		xlabel(1 "Ages 3-5" 3 "Ages 6-11", noticks) ///
+		ylabel(#10, nogrid) yscale(range(-.005 .05))  ///
+		graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white))  ///
+		plotregion(fcolor(white) lcolor(white)  ifcolor(white) ilcolor(white))  ///
+		scheme(s2mono) scale(1.7) yline(0, lpattern(dash) lcolor(black))
+		*text(1.7 1.6  "Overall effect = `beta_takeup' pp (S.E. = `se_beta_takeup')", place(e) color(blue*.8) size(medsmall)) ///
+		
+
+	graph export "$results/fe_estimates_`depvar'_short-longterm.pdf", as(pdf) replace
+	
+	local xx = `xx' + 1
+	
+	restore
+
+
+}
+
+
+
+stp
+
 **# Efecto testscores por género
 *Names for table
 local x = 1
@@ -647,7 +729,7 @@ foreach depvar in "batelle" "tvip" "cbcl"{
 
 
 
-stp 
+
 **# Tabla efectos 3 a 5 años, 6 +, y total
 
 rename (batelle tvip cbcl) (batelle0 tvip0 cbcl0)
@@ -665,7 +747,7 @@ foreach depvar in "batelle" "tvip" "cbcl"{
 	local nreg = 1
 	
 	*1. Full FEx -- efecto en 3 a 5 años.
-	qui: reghdfe `depvar'3 min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
+	reghdfe `depvar'3 min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
 	local n_`depvar'_`nreg' = string(e(N),"%42.0fc")
 	local beta_`depvar'_`nreg' = string(round(-_b[min_center_NM],.001),"%9.3f")
 	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_NM],.001),"%9.3f")
@@ -688,7 +770,7 @@ foreach depvar in "batelle" "tvip" "cbcl"{
 	
 	
 	*2. Full FEx -- efecto en 6+ años.
-	qui: reghdfe `depvar'6 min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
+	reghdfe `depvar'6 min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
 	local n_`depvar'_`nreg' = string(e(N),"%42.0fc")
 	local beta_`depvar'_`nreg' = string(round(-_b[min_center_NM],.001),"%9.3f")
 	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_NM],.001),"%9.3f")
@@ -711,7 +793,7 @@ foreach depvar in "batelle" "tvip" "cbcl"{
 	
 	
 	*3. Full FEx - total
-	qui: reghdfe `depvar'0 min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
+	reghdfe `depvar'0 min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
 	local n_`depvar'_`nreg' = string(e(N),"%42.0fc")
 	local beta_`depvar'_`nreg' = string(round(-_b[min_center_NM],.001),"%9.3f")
 	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_NM],.001),"%9.3f")
@@ -783,7 +865,6 @@ file open itts using "$results/fe_estimates_children_total.tex", write replace
 	file write itts "\bottomrule" _n
 	file write itts "\end{tabular}" _n
 file close itts
-
 
 
 
