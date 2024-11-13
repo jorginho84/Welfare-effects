@@ -36,12 +36,22 @@ else if "`user'"=="Antonia"{
 
 
 	}
-if "`user'" == "Cec"{
+	
+if "`c(username)'" == "ccorrea"{
 	global des		"G:\Mi unidad\Uandes\Jardines_elpi"
 	global db 		"$des/Data"
-	global results 	"$des/Results"
+// 	global results 	"$des/results"
 	global codes 	"C:\Users\ccorrea\OneDrive - Universidad de los Andes\Documentos\GitHub\Welfare-effects"
 }
+
+if "`c(username)'" == "Cecilia" {
+	global des		"C:\Users\Cecilia\Mi unidad\Uandes\Jardines_elpi"
+	global db 		"$des/Data"
+	global results 	"$des/results"
+	global codes 	"C:\Users\Cecilia\Documents\GitHub\Welfare-effects"
+}
+
+cd "$des"
 
 clear all
 set more off
@@ -87,30 +97,56 @@ forvalues x = 1/2{
 
 
 /*---Relevance check---*/ 
-// 1.5 qué percentil es? en N de datos
-// Para explicar que la estimación es más ruidosa.
 
-qui xi : reghdfe min_center_34  $controls, absorb(cohort#comuna_cod) resid
-predict min_u_34, residuals
+*Fig "effects of reducing distance to a center on cc utilization" (a)
+qui xi : reghdfe public_34 min_center_NM  $controls, absorb(cohort#comuna_cod) resid
+local beta = string(round(_b[min_center_NM],.001),"%9.3f")
+	local tstat = _b[min_center_NM] / _se[min_center_NM]
+	local pval = 2*(1-normal(abs(`tstat')))
+	*di `pval'
+	if `pval' <= 0.01{
+		local stars = "***"
+		
+	}
+	else if `pval' <= 0.05{
+		local stars = "**"
+	}
+	else if `pval' <= 0.1{
+		local stars = "*"
+	}
+	else{
+		local stars = " "
+	}
 
-foreach perc in 95 90 80 {
-	di `perc'
-_pctile min_center_34, p(`perc')
-local pctile = r(r1)
+di "`beta'`stars'"
+predict cc_predict, residuals
 
-
-twoway (histogram min_center_34 if min_center_34 <= `pctile', lwidth(medium) lcolor(blue) fcolor(blue*.4) yaxis(1)) ///
-	(lpolyci public_34 min_u_34 if min_u_34 <= `pctile' & min_u_34>0, degree(1) 	///
+// forval k = 2/3{
+	local k = 2
+twoway (histogram min_center_NM if min_center_NM <= `k', lwidth(medium) lcolor(blue) fcolor(blue*.4) yaxis(1) ) ///
+	(lpolyci cc_predict min_center_NM if min_center_NM <= `k', degree(1) 	///
 	 ciplot(rline)  lpattern(solid)   alcolor(black) alpattern(dash) clwidth(thick)  yaxis(2)), ///
-	 ytitle("Frequency") ytitle("Pr(Child care)",axis(2))  xtitle("Kms to closest center") ///
-	 legend(off)  ///
-	 xlabel(#3, noticks)  xsc(r(0 `pctile')) ylabel(, nogrid) /// 
+	 ytitle("Density") ytitle("Pr(Child care)",axis(2))  xtitle("Kms to closest center") ///
+	 text(1.4 1.8  "{&beta} = `beta'`stars'") legend(off)  ///
+	 xlabel(#3, noticks)  xsc(r(0 `k')) ylabel(, nogrid) /*ysc(r(0 1200))*/ /// 
 	 graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white)) ///
 	 plotregion(fcolor(white) lcolor(white)  ifcolor(white) ilcolor(white)) ///
-	 scheme(s2mono) scale(1.1)
+	 scheme(s2mono) scale(1.1) 
+graph export "$results/take-up_fes_`k'km.pdf", as(pdf) replace
 
-graph export "$results/take-up_fes_perc`perc'.pdf", as(pdf) replace
-}
+	local k = 3
+twoway (histogram min_center_NM if min_center_NM <= `k', lwidth(medium) lcolor(blue) fcolor(blue*.4) yaxis(1) ) ///
+	(lpolyci cc_predict min_center_NM if min_center_NM <= `k', degree(1) 	///
+	 ciplot(rline)  lpattern(solid)   alcolor(black) alpattern(dash) clwidth(thick)  yaxis(2)), ///
+	 ytitle("Density") ytitle("Pr(Child care)",axis(2))  xtitle("Kms to closest center") ///
+	 text(1 2  "{&beta} = `beta'`stars'") legend(off)  ///
+	 xlabel(#3, noticks)  xsc(r(0 `k')) ylabel(, nogrid) /*ysc(r(0 1200))*/ /// 
+	 graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white)) ///
+	 plotregion(fcolor(white) lcolor(white)  ifcolor(white) ilcolor(white)) ///
+	 scheme(s2mono) scale(1.1) 
+graph export "$results/take-up_fes_`k'km.pdf", as(pdf) replace
+
+stp
 /*
 *Figure: Take-up effects
 clear
