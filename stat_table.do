@@ -71,8 +71,8 @@ qui: sum public_34
 local mean_public_34 = string(round(r(mean),.001),"%9.3f")
 
 *Instruments
-foreach var in "NM"{	
-	qui: sum min_center_`var'
+foreach var in "34"{	
+	qui: sum min_center_NM
 	local mean_min_center_`var' = string(round(r(mean),.001),"%9.3f")
 	local sd_min_center_`var' = string(round(r(sd),.001),"%9.3f")
 }
@@ -129,7 +129,7 @@ file open stats using "$results/stat_table.tex", write replace
 	file write stats "Enrollment at 3-4  &  &         `mean_public_34'                 & &       -                 \\" _n
 	file write stats "    &  &                      & &              \\" _n
 	
-	file write stats "\textbf{Instruments}         &  &  & &    \\" _n
+	file write stats "\textbf{Policy}         &  &  & &    \\" _n
 	/*file write stats "0-2 proximity (kms) &  &                `mean_min_center_02'          & &         `sd_min_center_02'                \\" _n*/
 	file write stats "3-4 proximity (kms) &  &                     `mean_min_center_34'      & &         `sd_min_center_34'               \\" _n
 	file write stats "    &  &                      & &              \\" _n

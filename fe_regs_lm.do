@@ -366,5 +366,68 @@ foreach depvar in "wage_18" "hours_w_18" "d_work_18"{
 
 
 
+**# Effects across d_work baseline
+egen d_work_baseline = rowmax(d_work_t0*)
+
+
+*Names for table
+local x = 1
+foreach names in "earnings (monthly US\$)" "hours worked" "employment (in %)" {
+	local name_`x' = "`names'"
+	local x = `x' + 1
+	
+}
+
+local xx = 1
+foreach depvar in "wage_18" "hours_w_18" "d_work_18"{
+// 	local depvar = "wage_18"
+	preserve
+
+
+	forvalues x = 1(-1)0{
+		reghdfe `depvar' min_center_NM $controls if d_work_baseline == `x', absorb(cohort#comuna_cod) vce(robust)
+		local beta_takeup_`x' = -_b[min_center_NM]*100
+		local ub_takeup_`x' = (-_b[min_center_NM] + _se[min_center_NM]*invnormal(0.975))*100
+		local lb_takeup_`x' = (-_b[min_center_NM] - _se[min_center_NM]*invnormal(0.975))*100
+			
+	}
+	
+	
+	clear
+	set obs  3
+	gen effects = .
+	gen lb = .
+	gen ub = .
+	replace effects = `beta_takeup_1' if _n == 1
+	replace lb = `lb_takeup_1' if _n == 1
+	replace ub = `ub_takeup_1' if _n == 1
+
+	replace effects = `beta_takeup_0' if _n == 3
+	replace lb = `lb_takeup_0' if _n == 3
+	replace ub = `ub_takeup_0' if _n == 3
+
+	egen x = seq()
+
+	twoway (bar effects x, barwidth(1.2) color(black*.7) fintensity(.5)  lwidth(0.4) ) ///
+	(scatter effects x, msymbol(circle) mcolor(black*.7) mfcolor(black*.7)) ///
+		(rcap ub lb x, lpattern(solid) lcolor(black*.7) ), ///
+		ytitle("Effect on `name_`xx''")  xtitle("") legend(off) ///
+		xlabel(1 "Employed" 3 "Not employed", noticks) ///
+		ylabel(, nogrid)  ///
+		graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white))  ///
+		plotregion(fcolor(white) lcolor(white)  ifcolor(white) ilcolor(white))  ///
+		scheme(s2mono) scale(1.7) yline(0, lpattern(dash) lcolor(black))
+		*text(1.7 1.6  "Overall effect = `beta_takeup' pp (S.E. = `se_beta_takeup')", place(e) color(blue*.8) size(medsmall)) ///
+		
+
+	graph export "$results/`depvar'_work_baseline.pdf", as(pdf) replace
+	
+	local xx = `xx' + 1
+	
+	restore
+
+
+}
+
 
 
