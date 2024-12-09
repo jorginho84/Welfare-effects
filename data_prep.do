@@ -1169,10 +1169,26 @@ rename _merge merge_centers34_2010
 
 tab merge_centers34_2010 merge_centers34_2012, mi
 
+
+
+
+
 /*Note: our assumption is that when there are no distances, that 
 means that the distances are very long, not that there are variables missing
 thus, our assumption implies that we should never drop observations based
-on them not having distances*/
+on them not having distances -- expect these 13 folios:*/
+merge 1:1 folio using "$db/folios_sin_coordenadas"
+rename mis missing_coordenadas
+drop _merge
+
+foreach elpi_year in 2010 2012{
+foreach y in 2006 2007 2008 2009 2010 2011 2012 2013 2014{
+foreach x in 1000 5000{
+	replace N_centers`x'_y`y'_34_`elpi_year' = 0 if N_centers`x'_y`y'_34_`elpi_year' == . & missing_coordenadas != 1
+}
+}
+}
+drop missing_coordenadas
 
 *tempfile data_2012	
 *save `data_2012'
@@ -1234,17 +1250,23 @@ replace min_center_toddler_34=dist_min_y`yr_02'_34_2012 						if cohort_school==
 }
 }
 
+
+*Ahora generamos variable min_center_NM --> nivel medio is 2 to 3yo.
 local close_2007 2010
 local close_2008 2010
 local close_2009 2010
 local close_2010 2010
-local close_2011 2010
+local close_2011 2012
 local close_2012 2012
 local close_2013 2012
 local close_2014 2012
 
 foreach x in NMm NMM{
 gen 	min_center_`x' = .
+
+foreach dist in 1000 5000{
+gen 	N_centers`dist'_`x'=.
+}
 
 foreach c in 2006 2007 2008 2009 2010 2011 2012 2013{
 
@@ -1258,19 +1280,27 @@ replace min_center_`x'=dist_min_y`yr_`x''_34_`close_`yr_`x''' 			if cohort_schoo
 replace min_center_`x'=dist_min_y`yr_`x''_34_2010 						if cohort_school==`c' & min_center_`x'==.
 replace min_center_`x'=dist_min_y`yr_`x''_34_2012 						if cohort_school==`c' & min_center_`x'==.
 
+foreach dist in 1000 5000{
+di "year `c' N_center_`x'"
+replace N_centers`dist'_`x'=N_centers`dist'_y`yr_`x''_34_`close_`yr_`x''' 	if cohort_school==`c'
+replace N_centers`dist'_`x'=N_centers`dist'_y`yr_`x''_34_2012 				if cohort_school==`c' & N_centers`dist'_`x'==. 
+replace N_centers`dist'_`x'=N_centers`dist'_y`yr_`x''_34_2010 				if cohort_school==`c' & N_centers`dist'_`x'==. 
+}
+
 }
 }
 
 egen min_center_NM = rowmean(min_center_NM*)
+egen N_centers1000_NM = rowmax(N_centers1000_NM*)
+egen N_centers5000_NM = rowmax(N_centers5000_NM*)
 
 
-// foreach x in 2006 2007 2008 2009 2010 2011 2012 2013 2014{
-// foreach m in 300 500 1000 5000{
-// 	drop N_centers`m'_y`x'* cap`m'_y`x'* mat`m'_y`x'*
-// }
-// 	drop mat_min`x'* cap_min`x'* cap_weight_y`x'*
-// }
-// 	drop dist_min_* /*sat_* N_cen_cup**/
+foreach x in 2006 2007 2008 2009 2010 2011 2012 2013 2014{
+foreach m in 1000 5000{
+	drop N_centers`m'_y`x'*
+}
+}
+	drop dist_min_* 
 
 ********************************************************************************
 **# *********************** * *VARIABLES* * ************************************
