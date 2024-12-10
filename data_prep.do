@@ -1,6 +1,6 @@
 clear all
 
-local user Cec
+local user Jorge-server
 
 if "`user'" == "andres"{
 	cd 				"/Users/andres/Dropbox/jardines_elpi"
@@ -10,8 +10,8 @@ if "`user'" == "andres"{
 }
  
 else if "`user'" == "Jorge-server"{
-  global db "/home/jrodriguez/childcare/data"
-  global codes "/home/jrodriguez/childcare/codes"
+  global db "/home/jrodriguezo/childcare/data"
+  global codes "/home/jrodriguezo/childcare/codes"
           
 }
 
@@ -51,7 +51,6 @@ if "`c(username)'" == "Cecilia" {
 	global codes 	"C:\Users\Cecilia\Documents\GitHub\Welfare-effects"
 }
 
-cd "$des"
 
 
 /*
@@ -62,7 +61,7 @@ Set local run_geo = 1 if want to run geodata.do
 
 */
 
-local run_geo = 0
+local run_geo = 1
 
 
 ********************************************************************************
@@ -1138,7 +1137,7 @@ save "$db/ELPI_Panel.dta", replace
 use "$db/ELPI_Panel.dta", clear
 
 if `run_geo' == 1 {
-	qui: do "$code_dir/geodata.do"
+	qui: do "$codes/geodata.do"
 }
 
 

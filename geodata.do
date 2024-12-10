@@ -1,6 +1,6 @@
 clear all
 
-local user Cec
+local user Jorge-server
 
 if "`user'" == "andres"{
 	global db 		"/Users/andres/Dropbox/jardines_elpi/data"
@@ -9,9 +9,9 @@ if "`user'" == "andres"{
 }
 
 else if "`user'" == "Jorge-server"{ 
-  global db "/home/jrodriguez/childcare/data"
-  global codes "/home/jrodriguez/childcare/codes"
-  global km "/home/jrodriguez/childcare/data"
+  global db "/home/jrodriguezo/childcare/data"
+  global codes "/home/jrodriguezo/childcare/codes"
+  global km "/home/jrodriguezo/childcare/data"
 }
 
 else if "`user'" == "Jorge"{
