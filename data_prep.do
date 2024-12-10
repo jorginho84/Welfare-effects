@@ -61,7 +61,7 @@ Set local run_geo = 1 if want to run geodata.do
 
 */
 
-local run_geo = 1
+local run_geo = 0
 
 
 ********************************************************************************
