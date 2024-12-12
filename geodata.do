@@ -179,20 +179,29 @@ di "-------------------- Save db ELPI year = `elpi_year' ------------------"
 }
 
 
-**# Create db with number of NM children in each comuna by year
+**# (3) Create db with number of NM children in each comuna by year
 if pobl == 1 {
 import excel "$db/Datos Comunales/base-2002-(2014)-comunas_pob-total_base-de-datos.xls", clear firstrow sheet("Base_2002a2020_v2")
 rename _all, lower
 keep if inrange(edad,2,3)
-collapse (sum) a20* , by(region provincia comuna nombre_* edad)
+collapse (sum) a20* , by(comuna edad)
 
-reshape long a, i(region provincia comuna nombre_* edad) j(year)
+reshape long a, i(comuna edad) j(year)
 
 gen cohort = year - edad
+drop year
 keep if inrange(cohort,2006,2014) //Muestra ELPI
 
-collapse (sum) edad23 = a, by(region provincia comuna nombre_* cohort) 
-label var edad23 "N niñ-s edad 23, nacidos en cohorte y comuna determinada"
+reshape wide a, i(comuna cohort) j(edad)
+rename a* edad*_pobl
+
+egen edadNM_pobl = rowtotal(edad*)
+
+label var edad2_pobl "Poblacion niños/as edad 2"
+label var edad3_pobl "Poblacion niños/as edad 3"
+label var edadNM_pobl "Poblacion niños/as edad 2 y 3 - Nivel Medio"
+rename *_pobl pobl_*
+rename comuna comuna_cod
 
 save "$db/Poblacion_edad23_comuna_cohorte.dta", replace
 }
