@@ -1,6 +1,6 @@
 clear all
 
-local user Cec
+local user Jorge-server
 
 if "`user'" == "andres"{
 	global db 		"/Users/andres/Dropbox/jardines_elpi/data"
@@ -9,9 +9,9 @@ if "`user'" == "andres"{
 }
 
 else if "`user'" == "Jorge-server"{ 
-  global db "/home/jrodriguez/childcare/data"
-  global codes "/home/jrodriguez/childcare/codes"
-  global km "/home/jrodriguez/childcare/data"
+  global db "/home/jrodriguezo/childcare/data"
+  global codes "/home/jrodriguezo/childcare/codes"
+  global km "/home/jrodriguezo/childcare/data"
 }
 
 else if "`user'" == "Jorge"{
@@ -160,40 +160,40 @@ foreach typec in "34"{
 foreach elpi_year in 2010 2012{
 	foreach y in 2006 2007 2008 2009 2010 2011 2012 2013 2014 {	
 
-di "_________________________________________________________________________"
-di "- ELPI year= `elpi_year'; year= `y'; Type of center= 34 -"
-di "_________________________________________________________________________"
-			
-	use `est_aux', clear
-	keep if year == `y'
-	tempfile year`y'
-	save `year`y''
+	di "_________________________________________________________________________"
+	di "- ELPI year= `elpi_year'; year= `y'; Type of center= 34 -"
+	di "_________________________________________________________________________"
+				
+		use `est_aux', clear
+		keep if year == `y'
+		tempfile year`y'
+		save `year`y''
 
 
-			use "$db/ELPI`elpi_year'_distances", clear
-			merge m:1 id using `year`y''
-			keep if _merge == 3
-			drop _merge
-			
-			/*# of centers in a radius*/
-		di "-- # of centers in a radius: ELPI year = `elpi_year' --"
-			preserve
-// 			keep if distancia_establecimiento <= 6000 // En caso de que folio tenga missing en N_centers, deberá imputarse 0.
-			foreach k in 1000 5000{
-				*N_centers
-				by folio, sort: egen N_centers`k'_y`y'_`typec'_aux = count(distancia_establecimiento) if distancia_establecimiento<(`k')
-				by folio, sort: egen N_centers`k'_y`y'_`typec' = min(N_centers`k'_y`y'_`typec'_aux)
-				by folio, sort: replace N_centers`k'_y`y'_`typec' = 0 if N_centers`k'_y`y'_`typec' == .
-			}
-			collapse (mean) N_centers1000_y`y'_`typec' N_centers5000_y`y'_`typec', by(folio)
-			tempfile N_year`y'
-			save `N_year`y''
-			restore
-			
-		di "-- Collapse data to create var dist_min_y`y'_34; ELPI year = `elpi_year' --"
-		collapse (min) dist_min_y`y'_34 = distancia_establecimiento, by(folio)
-		tempfile min_year`y'
-		save `min_year`y''
+				use "$db/ELPI`elpi_year'_distances", clear
+				merge m:1 id using `year`y''
+				keep if _merge == 3
+				drop _merge
+				
+				/*# of centers in a radius*/
+			di "-- # of centers in a radius: ELPI year = `elpi_year' --"
+				preserve
+	 			keep if distancia_establecimiento <= 6000 // En caso de que folio tenga missing en N_centers, deberá imputarse 0.
+				foreach k in 1000 5000{
+					*N_centers
+					by folio, sort: egen N_centers`k'_y`y'_`typec'_aux = count(distancia_establecimiento) if distancia_establecimiento<(`k')
+					by folio, sort: egen N_centers`k'_y`y'_`typec' = min(N_centers`k'_y`y'_`typec'_aux)
+					by folio, sort: replace N_centers`k'_y`y'_`typec' = 0 if N_centers`k'_y`y'_`typec' == .
+				}
+				collapse (mean) N_centers1000_y`y'_`typec' N_centers5000_y`y'_`typec', by(folio)
+				tempfile N_year`y'
+				save `N_year`y''
+				restore
+				
+			di "-- Collapse data to create var dist_min_y`y'_34; ELPI year = `elpi_year' --"
+			collapse (min) dist_min_y`y'_34 = distancia_establecimiento, by(folio)
+			tempfile min_year`y'
+			save `min_year`y''
 		
 		}
 
@@ -226,12 +226,11 @@ di "-------------------- Save db ELPI year = `elpi_year' ------------------"
 // 	save "$db/Auxi/ELPI_N_Centers_`elpi_year'_34center", replace //Esto es para evitar escribir sobre la base inicial, y poder comparar entre ellas (por ahora)
 }
 
-	}
-}
 
 
-stp 
 
+
+/*
 *N centros por comuna 
 use id year fuente region comuna cap_ms mat_ms cap_het mat_het using "$db/establecimientos3", clear
 drop if fuente == "MINEDUC"
@@ -249,3 +248,4 @@ replace center_34 = 1 if mat_het != 0 & !missing(mat_het)
 keep if center_34 == 1
 
 collapse (count) center_34 (sum) cap_* , by(region comuna year) //Hay muchos JI sin comuna asociada.
+*/

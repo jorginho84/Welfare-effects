@@ -4,7 +4,7 @@ This file computes FE estimates of proximity to mother's labor market outcomes
 */
 
 
-local user Jorge
+local user Jorge-server
 
 if "`user'" == "andres"{
 	cd 				"/Users/andres/Dropbox/jardines_elpi"
@@ -14,10 +14,9 @@ if "`user'" == "andres"{
  
 else if "`user'" == "Jorge-server"{
  
-  global db "/home/jrodriguez/childcare/data"
-  global codes "/home/jrodriguez/childcare/codes"
-  global km "/home/jrodriguez/childcare/data"
-  global results "/home/jrodriguez/childcare/results"          
+  global db "/home/jrodriguezo/childcare/data"
+  global codes "/home/jrodriguezo/childcare/codes"
+  global results "/home/jrodriguezo/childcare/results"          
 }
 
 else if "`user'" == "Jorge"{
@@ -58,7 +57,7 @@ set seed 100
 use "$db/data_estimate", clear
 
 global controls i.m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home
-// keep if cohort <= 2011
+
 
 
 
@@ -223,8 +222,8 @@ file open itts using "$results/fe_estimates_lm.tex", write replace
 	file write itts "  	 Cohort and Municipality FEs         &  &                   &  & No  & No & Yes & Yes  \\" _n
 	file write itts "    Cohort\$\times\$ Municipality FEs         &  &                 &  & No   & No  & No  &   Yes  \\" _n
 	
-	*file write itts "\midrule" _n
-	*file write itts "    N         &  &                                &  & `n_wage_18_1'   & `n_wage_18_2' & `n_wage_18_3' &   `n_wage_18_4'  \\"
+	file write itts "\midrule" _n
+	file write itts "    N         &  &                                &  & `n_wage_18_1'   & `n_wage_18_2' & `n_wage_18_3' &   `n_wage_18_4'  \\"
 	
 	            
 	file write itts "\bottomrule" _n
@@ -232,7 +231,7 @@ file open itts using "$results/fe_estimates_lm.tex", write replace
 file close itts
 
 
-stop
+stop!!
 
 /*--------------------------------------------------------------------------------*/
 /*----------------   Effects across income       ----------------------------------*/
