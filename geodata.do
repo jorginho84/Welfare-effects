@@ -53,7 +53,14 @@ if "`c(username)'" == "Cecilia" {
 
 set more off
 
+**# Locals
+local dist = 0 //= 1 if needing to create "$db/ELPI`elpi_year'_distances.dta" database (Item 1)
+local pobl = 0 //= 1 if needing to create "$db/Poblacion_edad23_comuna_cohorte.dta" db (item 3).
+*Item 2 is going to run, it does not need any local. 
+
+
 **# (1) Generate distances db: for each elpi_year, we append 15 dbfs (one per region). 
+if `dist' == 1{
 foreach elpi_year in 2010 2012{
 forval i = 1/15 {
 di "--------------------- ELPI year = `elpi_year'; i = `i' ---------------------"
@@ -71,66 +78,11 @@ rename TargetID  id
 rename Distance distancia_establecimiento
 save "$db/ELPI`elpi_year'_distances.dta", replace
 }
-
-/*
-**# (2) Distance to the nearest 34 cc center
-use id year fuente cap_ms mat_ms cap_het mat_het using "$db/establecimientos3", clear
-drop if fuente == "MINEDUC"
-
-sort id year
-by id: replace cap_ms  = cap_ms[_n-1]  if cap_ms[_n] == .
-by id: replace cap_het = cap_het[_n-1] if cap_het[_n] == .
-
-gen center_34 = 0
-replace center_34 = 1 if mat_ms != 0 & !missing(mat_ms) //303 missing values in mat_ms 
-replace center_34 = 1 if cap_ms != 0 & !missing(cap_ms) //# of missing values is now 79
-replace center_34 = 1 if cap_het != 0 & !missing(cap_het)
-replace center_34 = 1 if mat_het != 0 & !missing(mat_het)
-
-keep if center_34 == 1
-
-tempfile est_aux
-save `est_aux'
-
-foreach elpi_year in 2010 2012{
-	foreach y in 2006 2007 2008 2009 2010 2011 2012 2013 2014 {	
-di "_________________________________________________________________________"
-di "- Var= dist_min_; ELPI year= `elpi_year'; year= `y'; Type of center= 34 -"
-di "_________________________________________________________________________"
-		
-	use `est_aux', clear
-	keep if year == `y'
-	tempfile year`y'
-	save `year`y''
-
-
-	use "$db/ELPI`elpi_year'_distances", clear
-	merge m:1 id using `year`y''
-	keep if _merge == 3
-	drop _merge
-
-di "-- Collapse data to create var dist_min_y`y'_34; ELPI year = `elpi_year' --"
-		collapse (min) dist_min_y`y'_34 = distancia_establecimiento, by(folio)
-		tempfile min_year`y'
-		save `min_year`y''
-	}
-
-di "------------ Merge years 2006 to 2014; ELPI year = `elpi_year' --------------"
-	use `min_year2006', clear
-	forvalues y=2007/2014{
-		di "y = `y'"
-			merge 1:1 folio using `min_year`y''
-			drop _merge
-	}
-	
-di "-------------------- Save db ELPI year = `elpi_year' ------------------"
-	save "$db/ELPI_N_Centers_`elpi_year'_34center", replace
-// 	save "$db/Auxi/ELPI_N_Centers_`elpi_year'_34center", replace //Esto es para evitar escribir sobre la base inicial, y poder comparar entre ellas (por ahora)
 }
-*/
 
 **#(2) Distance to the nearest 34 cc center + N centers NM in 1000 & 5000 mt radius
 /*Geodata variables by type of center*/
+
 use "$db/establecimientos3", clear
 
 sort id year
@@ -155,7 +107,8 @@ keep if center_34 == 1
 tempfile est_aux
 save `est_aux'
 
-foreach typec in "34"{
+*Create 2010 & 2012 db, cc centers Nivel Medio.
+local typec = "34"
 
 foreach elpi_year in 2010 2012{
 	foreach y in 2006 2007 2008 2009 2010 2011 2012 2013 2014 {	
@@ -223,29 +176,23 @@ di "------------ Merge years 2006 to 2014; ELPI year = `elpi_year' -------------
 
 di "-------------------- Save db ELPI year = `elpi_year' ------------------"
 	save "$db/ELPI_N_Centers_`elpi_year'_34center", replace
-// 	save "$db/Auxi/ELPI_N_Centers_`elpi_year'_34center", replace //Esto es para evitar escribir sobre la base inicial, y poder comparar entre ellas (por ahora)
 }
 
 
+**# Create db with number of NM children in each comuna by year
+if pobl == 1 {
+import excel "$db/Datos Comunales/base-2002-(2014)-comunas_pob-total_base-de-datos.xls", clear firstrow sheet("Base_2002a2020_v2")
+rename _all, lower
+keep if inrange(edad,2,3)
+collapse (sum) a20* , by(region provincia comuna nombre_* edad)
 
+reshape long a, i(region provincia comuna nombre_* edad) j(year)
 
+gen cohort = year - edad
+keep if inrange(cohort,2006,2014) //Muestra ELPI
 
-/*
-*N centros por comuna 
-use id year fuente region comuna cap_ms mat_ms cap_het mat_het using "$db/establecimientos3", clear
-drop if fuente == "MINEDUC"
+collapse (sum) edad23 = a, by(region provincia comuna nombre_* cohort) 
+label var edad23 "N niñ-s edad 23, nacidos en cohorte y comuna determinada"
 
-sort id year
-by id: replace cap_ms  = cap_ms[_n-1]  if cap_ms[_n] == .
-by id: replace cap_het = cap_het[_n-1] if cap_het[_n] == .
-
-gen center_34 = 0
-replace center_34 = 1 if mat_ms != 0 & !missing(mat_ms) //303 missing values in mat_ms 
-replace center_34 = 1 if cap_ms != 0 & !missing(cap_ms) //# of missing values is now 79
-replace center_34 = 1 if cap_het != 0 & !missing(cap_het)
-replace center_34 = 1 if mat_het != 0 & !missing(mat_het)
-
-keep if center_34 == 1
-
-collapse (count) center_34 (sum) cap_* , by(region comuna year) //Hay muchos JI sin comuna asociada.
-*/
+save "$db/Poblacion_edad23_comuna_cohorte.dta", replace
+}
