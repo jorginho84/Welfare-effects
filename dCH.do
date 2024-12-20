@@ -34,8 +34,7 @@ gen treated_centers = .
 replace treated_centers = 1 if N_centers1000_NM > 2
 replace treated_centers = 0 if N_centers1000_NM <= 2
 
-
-
+did_multiplegt_stat public_34 comuna_cod cohort treated_distance, weights(N_households) exact_match cluster(comuna_cod) placebo(1)
 
 *Estimates and plots
 foreach depvar in "public_34" "wage_18" "hours_w_18" "d_work_18" "tvip" "batelle"{
@@ -48,6 +47,10 @@ foreach depvar in "public_34" "wage_18" "hours_w_18" "d_work_18" "tvip" "batelle
 	local was_`depvar' = string(round(e(WAS)[1,1],.001),"%9.3f")
 	local lb_was_`depvar' = string(round(e(WAS)[1,3],.001),"%9.3f")
 	local ub_was_`depvar' = string(round(e(WAS)[1,4],.001),"%9.3f")
+
+	local placebo_`depvar' = string(round(e(PlaceboWAS)[1,1],.001),"%9.3f")
+	local lb_placebo_`depvar' = string(round(e(PlaceboWAS)[1,3],.001),"%9.3f")
+	local ub_placebo_`depvar' = string(round(e(PlaceboWAS)[1,4],.001),"%9.3f")
 
 	
 	
@@ -70,26 +73,36 @@ foreach names in "Earnings" "Hours" "Employment" {
 file open itts using "$results/dCH.tex", write replace
 	file write itts "\begin{tabular}{lcccccc}" _n
 	file write itts "\toprule" _n
-	file write itts "             &  &   Baseline mean  & & WAS && 95\% CI  \\" _n
+	file write itts "             &  &   Baseline mean  & & ATE && Placebo  \\" _n
 	file write itts "\midrule" _n
+	file write itts "   &&     & &  &&  \\" _n
 	file write itts "   \multicolumn{2}{l}{\textbf{A. Take-up}}  &    & &  &&   \\" _n
+	file write itts "   &&     & &  &&  \\" _n
 	
-	file write itts "  Child care  &&   `mean_public_34'  & & `was_public_34' && [`lb_was_public_34';`ub_was_public_34']  \\" _n
+	file write itts "  Child care  &&   `mean_public_34'  & & `was_public_34' && `placebo_public_34'  \\" _n
+	file write itts "              &&      & &  [`lb_was_public_34';`ub_was_public_34']  &&  [`lb_placebo_public_34';`ub_placebo_public_34'] \\" _n
+	
 	file write itts "   &&     & &  &&  \\" _n
 	file write itts "   \multicolumn{2}{l}{\textbf{B. Labor market}}  &     & & &&   \\" _n
+	file write itts "   &&     & &  &&  \\" _n
 	
 	local x = 1
 	foreach depvar in "wage_18" "hours_w_18" "d_work_18" {
 
-		file write itts "   `name_`x''  &&   `mean_`depvar''  & & `was_`depvar'' && [`lb_was_`depvar'';`ub_was_`depvar'']  \\" _n
-
+		file write itts "   `name_`x''  &&   `mean_`depvar''  & & `was_`depvar'' && `placebo_`depvar''  \\" _n
+		file write itts "             &&          & & [`lb_was_`depvar'';`ub_was_`depvar'']  && [`lb_placebo_`depvar'';`ub_placebo_`depvar'']  \\" _n
+		file write itts "   &&     & &  &&  \\" _n
 		local x = `x' + 1
 
 	}
-	file write itts "   &&     & &  &&  \\" _n
+
 	file write itts "   \multicolumn{2}{l}{\textbf{C. Cognitive test scores}}  &    & &  &&   \\" _n
-	file write itts "  TVIP  &&   `mean_tvip'  & & `was_tvip' && [`lb_was_tvip';`ub_was_tvip']  \\" _n
-	file write itts "  Batelle  &&   `mean_batelle'  & & `was_batelle' && [`lb_was_batelle';`ub_was_batelle']  \\" _n
+	file write itts "   &&     & &  &&  \\" _n
+	file write itts "  TVIP  &&   `mean_tvip'  & & `was_tvip' && `placebo_tvip' \\" _n
+	file write itts "        &&   			 & & [`lb_was_tvip';`ub_was_tvip'] && [`lb_placebo_tvip';`ub_placebo_tvip']  \\" _n
+	file write itts "   &&     & &  &&  \\" _n
+	file write itts "  Batelle  &&   `mean_batelle'  & & `was_batelle' && `placebo_batelle'  \\" _n
+	file write itts "            &&               & & [`lb_was_batelle';`ub_was_batelle']  && [`lb_placebo_batelle';`ub_placebo_batelle']  \\" _n
 	file write itts "\bottomrule" _n
 	file write itts "\end{tabular}" _n
 file close itts
