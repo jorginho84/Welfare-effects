@@ -51,10 +51,17 @@ use "$db/data_estimate", clear
 
 
 *Outcomes
-// egen TVIP = rowmean(TVIP_age_2 TVIP_age_3)
-// qui: sum TVIP
-// local mean_TVIP = string(round(r(mean),.001),"%9.3f")
-// local sd_TVIP = string(round(r(sd),.001),"%9.3f")
+qui: sum battelle
+local mean_BATTELLE = string(round(r(mean),.001),"%9.3f")
+local sd_BATTELLE = string(round(r(sd),.001),"%9.3f")
+
+qui: sum tvip
+local mean_TVIP = string(round(r(mean),.001),"%9.3f")
+local sd_TVIP = string(round(r(sd),.001),"%9.3f")
+
+// qui: sum cbcl
+// local mean_CBCL = string(round(r(mean),.001),"%9.3f")
+// local sd_CBCL = string(round(r(sd),.001),"%9.3f")
 
 qui: sum d_work_18
 local mean_d_work_18 = string(round(r(mean),.1),"%9.3f")
@@ -118,7 +125,9 @@ file open stats using "$results/stat_table.tex", write replace
 	file write stats "&  & \multicolumn{1}{c}{Mean} &                      & \multicolumn{1}{c}{SD} \\" _n
 	file write stats "\midrule" _n
 	file write stats "\textbf{Outcomes}         &  &  &  &    \\" _n
-	*file write stats "TADI (in \$ \sigma \$)      &  &        `mean_TVIP'        & &         `sd_TVIP'               \\" _n
+	file write stats "BATTELLE (in \$ \sigma \$)      &  &        `mean_BATTELLE'        & &         `sd_BATTELLE'               \\" _n
+	file write stats "TVIP (in \$ \sigma \$)      &  &        `mean_TVIP'        & &         `sd_TVIP'               \\" _n
+// 	file write stats "CBCL (in \$ \sigma \$)      &  &        `mean_CBCL'        & &         `sd_CBCL'               \\" _n
 	file write stats "Earnings (monthly USD)      &  &           `mean_wage_18'                & &        `sd_wage_18'                 \\" _n
 	file write stats "Hours worked (weekly)      &  &           `mean_hours_w_18'                & &        `sd_hours_w_18'                 \\" _n
 	file write stats "Employed      &  &            `mean_d_work_18'              & &         `sd_d_work_18'               \\" _n
@@ -131,7 +140,7 @@ file open stats using "$results/stat_table.tex", write replace
 	
 	file write stats "\textbf{Policy}         &  &  & &    \\" _n
 	/*file write stats "0-2 proximity (kms) &  &                `mean_min_center_02'          & &         `sd_min_center_02'                \\" _n*/
-	file write stats "3-4 proximity (kms) &  &                     `mean_min_center_34'      & &         `sd_min_center_34'               \\" _n
+	file write stats "3-4 proximity (kms) &  &                     `mean_min_center_NM'      & &         `sd_min_center_NM'               \\" _n
 	file write stats "    &  &                      & &              \\" _n
 	
 	file write stats "\textbf{Covariates}         &  &  & &    \\" _n
