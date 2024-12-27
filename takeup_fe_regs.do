@@ -93,10 +93,33 @@ forvalues x = 1/2{
 qui xi : reghdfe min_center_NM  $controls, absorb(cohort#comuna_cod) resid
 predict min_u_34, residuals
 
-foreach perc in 95 90 80 {
-	di `perc'
-_pctile min_center_NM, p(`perc')
-local pctile = r(r1)
+
+*Overall
+qui: reghdfe public_34 min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
+local beta = string(round(-_b[min_center_NM]*100,.1),"%9.1f")
+	local tstat = _b[min_center_NM] / _se[min_center_NM]
+
+	local pval = 2*(1-normal(abs(`tstat')))
+	*di `pval'
+	if `pval' <= 0.01{
+		local stars = "***"
+		
+	}
+	else if `pval' <= 0.05{
+		local stars = "**"
+	}
+	else if `pval' <= 0.1{
+		local stars = "*"
+	}
+	else{
+		local stars = " "
+	}
+
+
+// foreach perc in 95 90 80 {
+// 	di `perc'
+// _pctile min_center_NM, p(`perc')
+local pctile = 3
 
 
 twoway (histogram min_center_NM if min_center_NM <= `pctile', lwidth(medium) lcolor(blue) fcolor(blue*.4) yaxis(1)) ///
@@ -107,9 +130,10 @@ twoway (histogram min_center_NM if min_center_NM <= `pctile', lwidth(medium) lco
 	 xlabel(#3, noticks)  xsc(r(0 `pctile')) ylabel(, nogrid) /// 
 	 graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white)) ///
 	 plotregion(fcolor(white) lcolor(white)  ifcolor(white) ilcolor(white)) ///
-	 scheme(s2mono) scale(1.1)
+	 scheme(s2mono) scale(1.1) ///
+	 text(1.3 2  "{&beta} = `beta'`stars'" , place(ne) color(blue*.8) size(medsmall)) 
 
-graph export "$results/take-up_fes_perc`perc'.pdf", as(pdf) replace
+graph export "$results/take-up_fes_`pctile'.pdf", as(pdf) replace
 }
 /*
 *Figure: Take-up effects
