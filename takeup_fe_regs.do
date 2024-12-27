@@ -35,10 +35,17 @@ else if "`user'"=="Antonia"{
 
 
 	}
-if "`user'" == "Cec"{
+if "`c(username)'" == "Cecilia" {
+	global des		"C:\Users\Cecilia\Mi unidad\Uandes\Jardines_elpi"
+	global db 		"$des/Data"
+	global results 	"$des/Tex/figures_tables"
+	global codes 	"C:\Users\Cecilia\Documents\GitHub\Welfare-effects"
+}
+
+	if "`c(username)'" == "ccorrea"{
 	global des		"G:\Mi unidad\Uandes\Jardines_elpi"
 	global db 		"$des/Data"
-	global results 	"$des/Results"
+	global results 	"$des/Tex/figures_tables"
 	global codes 	"C:\Users\ccorrea\OneDrive - Universidad de los Andes\Documentos\GitHub\Welfare-effects"
 }
 
@@ -137,8 +144,8 @@ foreach corte in 30 40 50 60 80 {
 forvalues x = 1/2{
 	qui: reghdfe public_34 min_center_NM $controls if cat_income == `x', absorb(cohort#comuna_cod) vce(robust)
 	local beta_takeup_`x' = -_b[min_center_NM]*100
-	local ub_takeup_`x' = (-_b[min_center_NM] + _se[min_center_34]*invnormal(0.975))*100
-	local lb_takeup_`x' = (-_b[min_center_NM] - _se[min_center_34]*invnormal(0.975))*100
+	local ub_takeup_`x' = (-_b[min_center_NM] + _se[min_center_NM]*invnormal(0.975))*100
+	local lb_takeup_`x' = (-_b[min_center_NM] - _se[min_center_NM]*invnormal(0.975))*100
 		
 }
 
@@ -154,8 +161,8 @@ local se_beta_takeup = string(round(_se[min_center_NM]*100,.1),"%9.1f")
 forvalues x = 1/2{
 	qui: reghdfe public_34 min_center_NM $controls if cat_income == `x', absorb(cohort#comuna_cod) vce(robust)
 	local beta_takeup_`x' = -_b[min_center_NM]*100
-	local ub_takeup_`x' = (-_b[min_center_NM] + _se[min_center_34]*invnormal(0.975))*100
-	local lb_takeup_`x' = (-_b[min_center_NM] - _se[min_center_34]*invnormal(0.975))*100		
+	local ub_takeup_`x' = (-_b[min_center_NM] + _se[min_center_NM]*invnormal(0.975))*100
+	local lb_takeup_`x' = (-_b[min_center_NM] - _se[min_center_NM]*invnormal(0.975))*100		
 }
 
 drop cat_income
