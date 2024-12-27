@@ -77,7 +77,7 @@ egen cbcl6 = rowmean(cbcl*_age6_z cbcl*_age7_z cbcl*_age8_z cbcl*_age9_z cbcl*_a
 
 *Names for graphs
 local x = 1
-foreach names in "Batelle" "TVIP"{
+foreach names in "Battelle" "TVIP"{
 	local name_`x' = "`names'"
 	local x = `x' + 1
 	
@@ -85,16 +85,16 @@ foreach names in "Batelle" "TVIP"{
 
 local x = 1
 foreach depvar in "battelle" "tvip"{
-
 	preserve
 	foreach age of numlist 3 6 {
-		qui: reghdfe `depvar'`age' min_center_NM $controls , absorb(cohort#comuna_cod) vce(cluster comuna_cod)
+		reghdfe `depvar'`age' min_center_NM $controls , absorb(cohort#comuna_cod) vce(cluster comuna_cod)
 		local beta_takeup_`age' = -_b[min_center_NM]
 		local ub_takeup_`age' = (-_b[min_center_NM] + _se[min_center_NM]*invnormal(0.975))
 		local lb_takeup_`age' = (-_b[min_center_NM] - _se[min_center_NM]*invnormal(0.975))
-			
-	}
-
+		local tstat = _b[min_center_NM] / _se[min_center_NM]
+		local pval_`age' = 2*(1-normal(abs(`tstat')))
+	}			
+	
 	clear
 	set obs  3
 	gen effects = .
@@ -107,7 +107,30 @@ foreach depvar in "battelle" "tvip"{
 	replace effects = `beta_takeup_6' if _n == 3
 	replace lb = `lb_takeup_6' if _n == 3
 	replace ub = `ub_takeup_6' if _n == 3
-
+	
+	*Valores mostrados en el graf:
+	foreach g in 3 6{
+	local beta`g' = string(round(`beta_takeup_`g'',.001),"%9.3f")
+	
+	*di `pval'
+	if `pval_`g'' <= 0.01{
+		local stars_`g' = "***"
+		
+	}
+	else if `pval_`g'' <= 0.05{
+		local stars_`g' = "**"
+	}
+	else if `pval_`g'' <= 0.1{
+		local stars_`g' = "*"
+	}
+	else{
+		local stars_`g' = " "
+	}
+	}
+	*Position of text
+	local beta3_pos = `beta3' + .002
+	local beta6_pos = `beta6' + .002
+	
 	egen x = seq()
 
 	twoway (bar effects x, barwidth(1.2) color(black*.7) fintensity(.5)  lwidth(0.4) ) ///
@@ -118,7 +141,9 @@ foreach depvar in "battelle" "tvip"{
 		ylabel(-0.02(0.02)0.04, nogrid)  ///
 		graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white))  ///
 		plotregion(fcolor(white) lcolor(white)  ifcolor(white) ilcolor(white))  ///
-		scheme(s2mono) scale(1.7) yline(0, lpattern(dash) lcolor(black))
+		scheme(s2mono) scale(1.7) yline(0, lpattern(dash) lcolor(black)) ///
+		text(`beta3_pos' 1.02  "{&beta} = `beta3'`stars_3'" `beta6_pos' 3.02  "{&beta} = `beta6'`stars_6' ", place(ne) color(blue*.8) size(small)) 
+		
 		
 		
 
