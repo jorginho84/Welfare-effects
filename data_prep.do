@@ -1302,10 +1302,14 @@ foreach m in 1000 5000{
 	drop dist_min_* 
 
 	
-	stp
 *Merge w/ población por comuna edad NM
+// rename comuna_cod comuna
+merge m:1 cohort comuna_cod using "$db/Poblacion_edad23_comuna_cohorte.dta"
+drop if _merge == 2 //using only
+drop _merge
 
-merge 1:m cohort comuna using "$db/Poblacion_edad23_comuna_cohorte.dta"
+*N datos que tenemos, por comuna y cohorte
+bys comuna_cod cohort: egen pobl_edadNM_ELPI = count(folio)
 
 ********************************************************************************
 **# *********************** * *VARIABLES* * ************************************
@@ -1545,7 +1549,7 @@ forval t=1/10{
 	restore
 	preserve //2 years before birth
 	keep folio d_work_t02 wage_t02 hours_w_t02
-	collapse (mean) d_work_t02 (last) wage_t02 hours_w_t02, by(folio)
+	collapse (mean) d_work_t02 wage_t02 hours_w_t02, by(folio)
 
 	tempfile using tramo_t02
 	save `tramo_t02'
@@ -1617,6 +1621,15 @@ tab care_aux1
 drop fecha_inicio_w* fecha_termino_w* d2* d12* d13* 
 
 
+**# Elegible
+
+sum wage_baseline, d
+gen elegible_t01 = wage_baseline <= r(p50) // 0
+replace elegible_t01 = . if wage_baseline == .
+
+sum wage_t02, d
+gen elegible_t02 = wage_t02 <= r(p50) // 71.44643
+replace elegible_t02 = . if wage_t02 == .
 
 gen income_t0 = monthly_Y_2010
 replace income_t0 = monthly_Y_2012 if income_t0 == .
@@ -1893,6 +1906,7 @@ forvalues j=11/15{
 /*First I create an auxiliary variable that represents the segment the kids are in each year, according to their age. 
 Then, I create one variable per test, per segment and replace that variable with the test score if the auxiliary variable==segment */
 
+
 rename edad_mesesr_2017 edad_meses_2017
 forvalues x=1/6{
 gen TVIP_age_`x'_aux=.
@@ -1909,9 +1923,7 @@ replace age_aux_`j'=2 if edad_meses_`j'>36&edad_meses_`j'<=60&edad_meses_`j'!=. 
 replace age_aux_`j'=3 if edad_meses_`j'>60&edad_meses_`j'<=84&edad_meses_`j'!=. //5-7 years
 replace age_aux_`j'=4 if edad_meses_`j'>84&edad_meses_`j'<=108&edad_meses_`j'!=. //7-9 years
 replace age_aux_`j'=5 if edad_meses_`j'>108&edad_meses_`j'<=132&edad_meses_`j'!=. //9-11 years
-replace age_aux_`j'=6 if edad_meses_`j'>132&edad_meses_`j'!=. //>11 years (max is 12.5 years)*/
-
-
+replace age_aux_`j'=6 if edad_meses_`j'>132&edad_meses_`j'!=. //>11 years (max is 12.5 years)
 forvalues x=1/6{
 replace TVIP_age_`x'_aux=TVIP_t_`j'  if age_aux_`j'==`x'
 replace CBCL_age_`x'_aux=CBCL1_t_`j' if age_aux_`j'==`x'
@@ -1927,10 +1939,6 @@ egen CBCL_age_`x'=std(CBCL_age_`x'_aux)
 
 drop *_age_*_aux
 
-foreach var in d_work wage hours_w{
-	di "`var'"
-	egen `var'_18=rowmean( `var'_t6 `var'_t7)
-}
 
 
 *generamos variable que muestra la edad al momento del test:
@@ -1955,6 +1963,14 @@ egen battelle = rowmean(battelle_age*_z)
 egen tvip = rowmean(tvip_age*_z)
 egen cbcl = rowmean(cbcl*_age*_z)
 
+
+foreach var in d_work wage hours_w{
+	di "`var'"
+	egen `var'_18=rowmean( `var'_t6 `var'_t7)
+}
+
+**# Keep final sample
+
 *Keeping if (1) has distance (2) has public_34 (3) has d_work (4) has all controls vars.
 *generate variable final = 1 if observation belongs to final sample
 gen final = 1
@@ -1969,7 +1985,7 @@ foreach v of varlist $controls{
 keep if final == 1
 drop final
 
-*keeping final sample e(sample) = 1 for all LM models.
+*Keep final sample e(sample) = 1 for all LM models.
 foreach v of varlist d_work_18 wage_18 hours_w_18{
 reghdfe wage_18 min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
 keep if e(sample) == 1
