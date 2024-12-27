@@ -1,6 +1,6 @@
 clear all
 
-local user Cec
+local user Jorge-server
 
 if "`user'" == "andres"{
 	cd 				"/Users/andres/Dropbox/jardines_elpi"
@@ -10,8 +10,8 @@ if "`user'" == "andres"{
 }
  
 else if "`user'" == "Jorge-server"{
-  global db "/home/jrodriguez/childcare/data"
-  global codes "/home/jrodriguez/childcare/codes"
+  global db "/home/jrodriguezo/childcare/data"
+  global codes "/home/jrodriguezo/childcare/codes"
           
 }
 
@@ -51,7 +51,6 @@ if "`c(username)'" == "Cecilia" {
 	global codes 	"C:\Users\Cecilia\Documents\GitHub\Welfare-effects"
 }
 
-cd "$des"
 
 
 /*
@@ -114,6 +113,23 @@ keep folio edad_meses eedp_pt batelle_pt_total tepsi_pt_t tvip_pt asq_pb_6m  asq
 ren (eedp_pt batelle_pt_total tepsi_pt_t tvip_pt asq_pb_6m asq_pb_12m asq_pb_18m cbcl1_pt_t wais_pt_num wais_pt_vo bfi_pb_ext bfi_pb_ama bfi_pb_res bfi_pb_neu  bfi_pb_ape) /*
 */ (EEDP_t BATTELLE_t TEPSI_t TVIP_t ASQ_bruto_6 ASQ_bruto_12 ASQ_bruto_18 CBCL1_t WAIS_t_num WAIS_t_vo BFI_EXT_bruto BFI_AMA_bruto BFI_RES_bruto BFI_NEU_bruto BFI_APE_bruto)
 ren (peso_nino_selec talla_nino_selec fexp_test) (PESO TALLA FE_test)
+
+*edad
+gen age_test = floor(edad_meses/12)
+
+*Estandarizamos tests:
+gen battelle_z = .
+gen tvip_z = .
+gen cbcl_z = . 
+
+forval d = 0/4{
+	qui: sum BATTELLE_t if age_test == `d'
+	replace battelle_z = (BATTELLE_t - r(mean))/r(sd) if age_test == `d'
+	qui: sum TVIP_t if age_test == `d'
+	replace tvip_z = (TVIP_t - r(mean))/r(sd) if age_test == `d'
+	qui: sum CBCL1_t if age_test == `d'
+	replace cbcl_z = (CBCL1_t - r(mean))/r(sd) if age_test == `d'
+}
 
 merge 1:1 folio using `db1.dta'
 tab _merge
@@ -209,6 +225,11 @@ collapse (count) n_integrantes = orden (min) *_sch *_educ m_age gender (max) *_h
 	ren d11m  monthly_Y
 	recode monthly_Y (99 = .)
 	xtile percentile_income_h = monthly_Y [pw = FE_hog], n(100)
+// 	xtile percentile_income_h2 = monthly_Y , n(10)
+// 	xtile aux = monthly_Y, n(2)
+	sum monthly_Y, d
+	gen elegible_p50 = monthly_Y <= r(p50)
+	replace elegible_p50 = . if monthly_Y == .
 	
 
 // label var n_integrantes "Number of people in the home"
@@ -340,6 +361,26 @@ keep folio edad_meses batelle_pt_total tvip_pt asq_pb_6m  asq_pb_12m asq_pb_18m 
 ren (batelle_pt_total tvip_pt asq_pb_6m asq_pb_12m asq_pb_18m cbcl1_pt_t cbcl2_pt_t wais_pt_num wais_pt_vo bfi_pb_ext bfi_pb_ama bfi_pb_res bfi_pb_neu bfi_pb_ape) (BATTELLE_t TVIP_t ASQ_bruto_6 ASQ_bruto_12 ASQ_bruto_18 CBCL1_t CBCL2_t WAIS_t_num WAIS_t_vo BFI_EXT_bruto BFI_AMA_bruto BFI_RES_bruto BFI_NEU_bruto BFI_APE_bruto)
 rename (peso_nino_selec talla_nino_selec fexp_test0 fexp_testP) (PESO TALLA FE_test FE_test_P)
 
+
+*edad
+gen age_test = floor(edad_meses/12)
+
+*Estandarizamos tests:
+gen battelle_z = .
+gen tvip_z = .
+gen cbcl_z = . 
+
+forval d = 0/6{
+	qui: sum BATTELLE_t if age_test == `d'
+	replace battelle_z = (BATTELLE_t - r(mean))/r(sd) if age_test == `d'
+	qui: sum TVIP_t if age_test == `d'
+	replace tvip_z = (TVIP_t - r(mean))/r(sd) if age_test == `d'
+	qui: sum CBCL1_t if age_test == `d'
+	replace cbcl_z = (CBCL1_t - r(mean))/r(sd) if age_test == `d'
+	qui: sum CBCL2_t if age_test == `d'
+	replace cbcl_z = (CBCL2_t - r(mean))/r(sd) if age_test == `d' & cbcl_z == .
+}
+
 merge 1:1 folio using `db1b.dta'
 tab _merge
 rename _merge merge_evaluaciones
@@ -433,6 +474,17 @@ collapse (count) n_integrantes = orden (min) *_sch *_educ m_age gender (max) *_h
 	ren l11_monto monthly_Y
 	recode monthly_Y (99 = .)
 	xtile percentile_income_h = monthly_Y [pw = FE_hog], n(100)
+	sum monthly_Y, d
+	gen elegible_p50 = monthly_Y <= r(p50)
+	replace elegible_p50 = . if monthly_Y == .
+	
+// 	gen decil_income = .
+// 	sum monthly_Y, d
+// 	forval d = 1/10{
+// 		local p = `d'*10 
+// 		di "r(p`p') = `r(p`p')'"
+// 		replace decil_income = `d' if monthly_Y <= r(p`p') & decil_income == . 
+// 	}
 
 // label var n_integrantes "Number of people in the home"
 // label var m_sch "Mother's years of schooling"
@@ -625,6 +677,9 @@ label var dum_sibling_part "1 if child's young sibling(s) goes to cc (P-K or low
 	*Percentil de ingreso del hogar 2017
 	xtile percentile_income_h = monthly_Y [pw = fexp_hog0_2], n(100)
 	label var percentile_income "Percentil de ingreso con respecto a hogares 2017"
+	sum monthly_Y, d
+	gen elegible_p50 = monthly_Y <= r(p50)
+	replace elegible_p50 = . if monthly_Y == .
 	 
 	foreach v of varlist dum_smoke dum_alc dum_drug{
 	    recode `v' (8 = .)
@@ -757,7 +812,7 @@ keep if h1==1|h1==2
 
 rename (o1 o10 y1) (work_aux hours_w_aux wage_aux)
 
-keep folio f_sch f_educ m_sch m_educ gender birth_weight dum_center12345 dum_center67 dum_work12345 dum_work67 cc_* dum_siblings tot_sib dum_young_siblings f_home dum_smoke dum_alc dum_sano dum_drug preg_control h1 m_age region idcomuna married n_integrantes fexp_enc0_2 fexp_eva0_2 fexp_hog0_2 time_center12345 time_center67 monthly_Y dum_work* work_aux hours_w_aux wage_aux espanel percentile_income_h type_center67 bday trab_aux
+keep folio f_sch f_educ m_sch m_educ gender birth_weight dum_center12345 dum_center67 dum_work12345 dum_work67 cc_* dum_siblings tot_sib dum_young_siblings f_home dum_smoke dum_alc dum_sano dum_drug preg_control h1 m_age region idcomuna married n_integrantes fexp_enc0_2 fexp_eva0_2 fexp_hog0_2 time_center12345 time_center67 monthly_Y dum_work* work_aux hours_w_aux wage_aux espanel percentile_income_h type_center67 bday trab_aux elegible_p50
 
 recode work_aux (2 = 0) (8 = .)
 recode wage_aux (9 = .)
@@ -808,6 +863,27 @@ ren asq_pb_12m			ASQ_bruto_12
 ren asq_pb_18m			ASQ_bruto_18
 ren cbcl1_pt_inter_t	CBCL1_t
 ren cbcl2_pt_inter_t	CBCL2_t
+
+*Para edad 6, hay niños que fueron evaluados con CBCL1 o CBCL2, pero no ambas
+
+*edad
+gen age_test = floor(edad_mesesr/12)
+
+*Estandarizamos tests:
+gen battelle_z = .
+gen tvip_z = .
+gen cbcl_z = . 
+
+forval d = 0/12{
+	qui: sum BATTELLE_t if age_test == `d'
+	replace battelle_z = (BATTELLE_t - r(mean))/r(sd) if age_test == `d'
+	qui: sum TVIP_t if age_test == `d'
+	replace tvip_z = (TVIP_t - r(mean))/r(sd) if age_test == `d'
+	qui: sum CBCL1_t if age_test == `d'
+	replace cbcl_z = (CBCL1_t - r(mean))/r(sd) if age_test == `d'
+	qui: sum CBCL2_t if age_test == `d'
+	replace cbcl_z = (CBCL2_t - r(mean))/r(sd) if age_test == `d' & cbcl_z == .
+}
 
 merge 1:1 folio using `db2017.dta'
 tab _merge //1500 children without evaluations
@@ -1061,7 +1137,7 @@ save "$db/ELPI_Panel.dta", replace
 use "$db/ELPI_Panel.dta", clear
 
 if `run_geo' == 1 {
-	qui: do "$code_dir/geodata.do"
+	qui: do "$codes/geodata.do"
 }
 
 
@@ -1092,10 +1168,26 @@ rename _merge merge_centers34_2010
 
 tab merge_centers34_2010 merge_centers34_2012, mi
 
+
+
+
+
 /*Note: our assumption is that when there are no distances, that 
 means that the distances are very long, not that there are variables missing
 thus, our assumption implies that we should never drop observations based
-on them not having distances*/
+on them not having distances -- expect these 13 folios:*/
+merge 1:1 folio using "$db/folios_sin_coordenadas"
+rename mis missing_coordenadas
+drop _merge
+
+foreach elpi_year in 2010 2012{
+foreach y in 2006 2007 2008 2009 2010 2011 2012 2013 2014{
+foreach x in 1000 5000{
+	replace N_centers`x'_y`y'_34_`elpi_year' = 0 if N_centers`x'_y`y'_34_`elpi_year' == . & missing_coordenadas != 1
+}
+}
+}
+drop missing_coordenadas
 
 *tempfile data_2012	
 *save `data_2012'
@@ -1157,17 +1249,23 @@ replace min_center_toddler_34=dist_min_y`yr_02'_34_2012 						if cohort_school==
 }
 }
 
+
+*Ahora generamos variable min_center_NM --> nivel medio is 2 to 3yo.
 local close_2007 2010
 local close_2008 2010
 local close_2009 2010
 local close_2010 2010
-local close_2011 2010
+local close_2011 2012
 local close_2012 2012
 local close_2013 2012
 local close_2014 2012
 
 foreach x in NMm NMM{
 gen 	min_center_`x' = .
+
+foreach dist in 1000 5000{
+gen 	N_centers`dist'_`x'=.
+}
 
 foreach c in 2006 2007 2008 2009 2010 2011 2012 2013{
 
@@ -1181,19 +1279,37 @@ replace min_center_`x'=dist_min_y`yr_`x''_34_`close_`yr_`x''' 			if cohort_schoo
 replace min_center_`x'=dist_min_y`yr_`x''_34_2010 						if cohort_school==`c' & min_center_`x'==.
 replace min_center_`x'=dist_min_y`yr_`x''_34_2012 						if cohort_school==`c' & min_center_`x'==.
 
+foreach dist in 1000 5000{
+di "year `c' N_center_`x'"
+replace N_centers`dist'_`x'=N_centers`dist'_y`yr_`x''_34_`close_`yr_`x''' 	if cohort_school==`c'
+replace N_centers`dist'_`x'=N_centers`dist'_y`yr_`x''_34_2012 				if cohort_school==`c' & N_centers`dist'_`x'==. 
+replace N_centers`dist'_`x'=N_centers`dist'_y`yr_`x''_34_2010 				if cohort_school==`c' & N_centers`dist'_`x'==. 
+}
+
 }
 }
 
 egen min_center_NM = rowmean(min_center_NM*)
+egen N_centers1000_NM = rowmax(N_centers1000_NM*)
+egen N_centers5000_NM = rowmax(N_centers5000_NM*)
 
 
-// foreach x in 2006 2007 2008 2009 2010 2011 2012 2013 2014{
-// foreach m in 300 500 1000 5000{
-// 	drop N_centers`m'_y`x'* cap`m'_y`x'* mat`m'_y`x'*
-// }
-// 	drop mat_min`x'* cap_min`x'* cap_weight_y`x'*
-// }
-// 	drop dist_min_* /*sat_* N_cen_cup**/
+foreach x in 2006 2007 2008 2009 2010 2011 2012 2013 2014{
+foreach m in 1000 5000{
+	drop N_centers`m'_y`x'*
+}
+}
+	drop dist_min_* 
+
+	
+*Merge w/ población por comuna edad NM
+// rename comuna_cod comuna
+merge m:1 cohort comuna_cod using "$db/Poblacion_edad23_comuna_cohorte.dta"
+drop if _merge == 2 //using only
+drop _merge
+
+*N datos que tenemos, por comuna y cohorte
+bys comuna_cod cohort: egen pobl_edadNM_ELPI = count(folio)
 
 ********************************************************************************
 **# *********************** * *VARIABLES* * ************************************
@@ -1433,7 +1549,7 @@ forval t=1/10{
 	restore
 	preserve //2 years before birth
 	keep folio d_work_t02 wage_t02 hours_w_t02
-	collapse (mean) d_work_t02 (last) wage_t02 hours_w_t02, by(folio)
+	collapse (mean) d_work_t02 wage_t02 hours_w_t02, by(folio)
 
 	tempfile using tramo_t02
 	save `tramo_t02'
@@ -1505,6 +1621,15 @@ tab care_aux1
 drop fecha_inicio_w* fecha_termino_w* d2* d12* d13* 
 
 
+**# Elegible
+
+sum wage_baseline, d
+gen elegible_t01 = wage_baseline <= r(p50) // 0
+replace elegible_t01 = . if wage_baseline == .
+
+sum wage_t02, d
+gen elegible_t02 = wage_t02 <= r(p50) // 71.44643
+replace elegible_t02 = . if wage_t02 == .
 
 gen income_t0 = monthly_Y_2010
 replace income_t0 = monthly_Y_2012 if income_t0 == .
@@ -1524,13 +1649,14 @@ replace elegible_p80 = . if percentile_income_h == .
 label var elegible_p60 "Less than percentile 60 of income at 2 years old"
 label var elegible_p80 "Less than percentile 80 of income at 2 years old"
 
+**Elegible p50
+gen elegible_p50 = elegible_p50_2010 if birth_year <= 2008 //Percentil de ingreso a la edad 2 años (momento de postulación)
+replace elegible_p50 = elegible_p50_2012 if inrange(birth_year,2009,2010)
+replace elegible_p50 = elegible_p50_2017 if birth_year >= 2011
+replace elegible_p50 = elegible_p50_2010 if elegible_p50 == .
+replace elegible_p50 = elegible_p50_2012 if elegible_p50 == .
+replace elegible_p50 = elegible_p50_2017 if elegible_p50 == .
 
-*Gen Familia Elegible del jardin (income<=p60. Using p80)
-local p = 80
-_pctile income_t0, p(`p')
-gen elegible = (income_t0 <= r(r1))
-replace elegible = . if income_t0 == .
-label var elegible "Less than percentile `p' of income"
 
 
 *Centro publico=1 2010 "
@@ -1780,6 +1906,7 @@ forvalues j=11/15{
 /*First I create an auxiliary variable that represents the segment the kids are in each year, according to their age. 
 Then, I create one variable per test, per segment and replace that variable with the test score if the auxiliary variable==segment */
 
+
 rename edad_mesesr_2017 edad_meses_2017
 forvalues x=1/6{
 gen TVIP_age_`x'_aux=.
@@ -1796,9 +1923,7 @@ replace age_aux_`j'=2 if edad_meses_`j'>36&edad_meses_`j'<=60&edad_meses_`j'!=. 
 replace age_aux_`j'=3 if edad_meses_`j'>60&edad_meses_`j'<=84&edad_meses_`j'!=. //5-7 years
 replace age_aux_`j'=4 if edad_meses_`j'>84&edad_meses_`j'<=108&edad_meses_`j'!=. //7-9 years
 replace age_aux_`j'=5 if edad_meses_`j'>108&edad_meses_`j'<=132&edad_meses_`j'!=. //9-11 years
-replace age_aux_`j'=6 if edad_meses_`j'>132&edad_meses_`j'!=. //>11 years (max is 12.5 years)*/
-
-
+replace age_aux_`j'=6 if edad_meses_`j'>132&edad_meses_`j'!=. //>11 years (max is 12.5 years)
 forvalues x=1/6{
 replace TVIP_age_`x'_aux=TVIP_t_`j'  if age_aux_`j'==`x'
 replace CBCL_age_`x'_aux=CBCL1_t_`j' if age_aux_`j'==`x'
@@ -1814,54 +1939,37 @@ egen CBCL_age_`x'=std(CBCL_age_`x'_aux)
 
 drop *_age_*_aux
 
+
+
+*generamos variable que muestra la edad al momento del test:
+
+forval d = 0/12{
+	gen battelle_age`d' = battelle_z_2010 if age_test_2010  == `d'
+	replace battelle_age`d' = battelle_z_2012 if age_test_2012  == `d' & battelle_age`d' == .
+	replace battelle_age`d' = battelle_z_2017 if age_test_2017  == `d' & battelle_age`d' == .
+	
+	gen tvip_age`d' = tvip_z_2010  if age_test_2010  == `d'
+	replace  tvip_age`d' = tvip_z_2012  if age_test_2012  == `d' & tvip_age`d' == .
+	replace  tvip_age`d' = tvip_z_2017  if age_test_2017  == `d' & tvip_age`d' == .
+	
+	gen cbcl_age`d' = cbcl_z_2010 if age_test_2010  == `d'
+	replace  cbcl_age`d' = cbcl_z_2012  if age_test_2012  == `d' & cbcl_age`d' == .
+	replace  cbcl_age`d' = cbcl_z_2017  if age_test_2017  == `d' & cbcl_age`d' == .
+}
+
+rename (battelle_age* tvip_age* cbcl_age*) (battelle_age*_z tvip_age*_z cbcl_age*_z)
+*En caso de que niño/a tenga dos valores en tescore, se promedian.
+egen battelle = rowmean(battelle_age*_z)
+egen tvip = rowmean(tvip_age*_z)
+egen cbcl = rowmean(cbcl*_age*_z)
+
+
 foreach var in d_work wage hours_w{
 	di "`var'"
 	egen `var'_18=rowmean( `var'_t6 `var'_t7)
 }
 
-
-*Test score variables, by age
-
-*BATELLE
-forval d = 0/11 {
-	gen batelle_age`d'_t = BATTELLE_t_2010 if birth_year == 2010 - `d'
-	replace batelle_age`d'_t = BATTELLE_t_2012 if birth_year == 2012 - `d' & batelle_age`d'_t == .
-	replace batelle_age`d'_t = BATTELLE_t_2017  if birth_year == 2017 - `d' & batelle_age`d'_t == .
-}
-	
-*TVIP
-forval d = 0/11 {
-	gen tvip_age`d'_t = TVIP_t_2010 if birth_year == 2010 - `d'
-	replace tvip_age`d'_t = TVIP_t_2012 if birth_year == 2012 - `d' & tvip_age`d'_t == .
-	replace tvip_age`d'_t = TVIP_t_2017  if birth_year == 2017 - `d' & tvip_age`d'_t == .
-}
-
-*CBCL
-forval d = 0/11 {
-	gen cbcl1_age`d'_t = CBCL1_t_2010 if birth_year == 2010 - `d'
-	replace cbcl1_age`d'_t = CBCL1_t_2012 if birth_year == 2012 - `d' & cbcl1_age`d'_t == .
-	replace cbcl1_age`d'_t = CBCL1_t_2017  if birth_year == 2017 - `d' & cbcl1_age`d'_t == .
-}
-
-*CBCL2
-forval d = 0/11 {
-	gen cbcl2_age`d'_t = CBCL2_t_2012 if birth_year == 2012 - `d'
-	replace cbcl2_age`d'_t = CBCL2_t_2017  if birth_year == 2017 - `d' & cbcl2_age`d'_t == .
-}
-
-*Battelle lo normalizo todos los testscores
-forval d = 0/11{
-	qui: sum batelle_age`d'_t
-	gen batelle_age`d'_z = (batelle_age`d'_t - r(mean))/r(sd)
-	qui: sum tvip_age`d'_t
-	gen tvip_age`d'_z = (tvip_age`d'_t - r(mean))/r(sd)
-	qui: sum cbcl1_age`d'_t
-	gen cbcl1_age`d'_z = (cbcl1_age`d'_t - r(mean))/r(sd)
-	qui: sum cbcl2_age`d'_t
-	gen cbcl2_age`d'_z = (cbcl2_age`d'_t - r(mean))/r(sd)
-}
-
-
+**# Keep final sample
 
 *Keeping if (1) has distance (2) has public_34 (3) has d_work (4) has all controls vars.
 *generate variable final = 1 if observation belongs to final sample
@@ -1877,7 +1985,7 @@ foreach v of varlist $controls{
 keep if final == 1
 drop final
 
-*keeping final sample e(sample) = 1 for all LM models.
+*Keep final sample e(sample) = 1 for all LM models.
 foreach v of varlist d_work_18 wage_18 hours_w_18{
 reghdfe wage_18 min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
 keep if e(sample) == 1
