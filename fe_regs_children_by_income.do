@@ -1,3 +1,6 @@
+**** This dofile generates graphs of heterogeneous effects on children's testscore, by employment at baseline
+/*Effects across employment at baseline on cognitive scores*/
+
 local user Jorge-server
 
 if "`user'" == "andres"{
@@ -57,9 +60,88 @@ use "$db/data_estimate", clear
 
 global controls i.m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home
 
+*Work at baseline
+recode d_work_t02 (0 = 1) (1 = 2) , gen(cat_income) //Low income = did not work 2 years before birth. 
 
-*Below/above median of HH income at baseline
-gen cat_income = .
-replace cat_income = 1 if percentile_income_h <= 50
-replace cat_income = 2 if percentile_income_h > 50 & percentile_income_h != .
+
+forval c = 1/2{
+
+*Names for graphs
+local x = 1
+foreach names in "Battelle" "TVIP"{
+	local name_`x' = "`names'"
+	local x = `x' + 1
+	
+}
+
+local x = 1
+foreach depvar in "battelle" "tvip"{
+	preserve
+	foreach age of numlist 3 6 {
+		reghdfe `depvar'`age' min_center_NM $controls if cat_income == `c', absorb(cohort#comuna_cod) vce(cluster comuna_cod)
+		local beta_takeup_`age' = -_b[min_center_NM]
+		local ub_takeup_`age' = (-_b[min_center_NM] + _se[min_center_NM]*invnormal(0.975))
+		local lb_takeup_`age' = (-_b[min_center_NM] - _se[min_center_NM]*invnormal(0.975))
+		local tstat = _b[min_center_NM] / _se[min_center_NM]
+		local pval_`age' = 2*(1-normal(abs(`tstat')))
+	}			
+	
+	clear
+	set obs  3
+	gen effects = .
+	gen lb = .
+	gen ub = .
+	replace effects = `beta_takeup_3' if _n == 1
+	replace lb = `lb_takeup_3' if _n == 1
+	replace ub = `ub_takeup_3' if _n == 1
+
+	replace effects = `beta_takeup_6' if _n == 3
+	replace lb = `lb_takeup_6' if _n == 3
+	replace ub = `ub_takeup_6' if _n == 3
+	
+	*Valores mostrados en el graf:
+	foreach g in 3 6{
+	local beta`g' = string(round(`beta_takeup_`g''*100,.001),"%9.3f")
+	
+	*di `pval'
+	if `pval_`g'' <= 0.01{
+		local stars_`g' = "***"
+		
+	}
+	else if `pval_`g'' <= 0.05{
+		local stars_`g' = "**"
+	}
+	else if `pval_`g'' <= 0.1{
+		local stars_`g' = "*"
+	}
+	else{
+		local stars_`g' = " "
+	}
+	}
+	*Position of text
+	local beta3_pos = `beta_takeup_3' + .002
+	local beta6_pos = `beta_takeup_6' + .002
+	
+	egen x = seq()
+
+	twoway (bar effects x, barwidth(1.2) color(black*.7) fintensity(.5)  lwidth(0.4) ) ///
+	(scatter effects x, msymbol(circle) mcolor(black*.7) mfcolor(black*.7)) ///
+		(rcap ub lb x, lpattern(solid) lcolor(black*.7) ), ///
+		ytitle("Effect on `name_`x''")  xtitle("") legend(off) ///
+		xlabel(1 "Ages 3-5" 3 "Ages 6-11", noticks) ///
+		ylabel(-0.02(0.02)0.04, nogrid)  ///
+		graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white))  ///
+		plotregion(fcolor(white) lcolor(white)  ifcolor(white) ilcolor(white))  ///
+		scheme(s2mono) scale(1.7) yline(0, lpattern(dash) lcolor(black)) ///
+		text(`beta3_pos' 1.02  "{&beta} = `beta3'%`stars_3'" `beta6_pos' 3.02  "{&beta} = `beta6'%`stars_6'", place(ne) color(blue*.8) size(vsmall)) 
+		
+
+	graph export "$results/fe_estimates_`depvar'_short-longterm_catincome`c'.pdf", as(pdf) replace
+
+	restore
+
+	local x = `x' + 1
+}
+}
+
 
