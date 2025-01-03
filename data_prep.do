@@ -1105,6 +1105,18 @@ replace `var'=`var'_2012 if `var'==.
 replace `var'=`var'_2017 if `var'==.
 }
 
+*Siblings vars
+foreach var of varlist dum_siblings tot_sib dum_young_siblings{
+    di "`var'"
+gen `var'34 = `var'
+replace `var'34 = `var'_2010 if `var'_2010!=. & birth_year <= 2008
+replace `var'34 = `var'_2012 if `var'_2012!=. & inrange(birth_year,2009,2010)
+replace `var'34 = `var'_2017 if `var'_2017!=. & inrange(birth_year,2011,2014)
+}
+
+drop dum_siblings tot_sib dum_young_siblings
+rename (dum_siblings34 tot_sib34 dum_young_siblings34) (dum_siblings tot_sib dum_young_siblings)
+ 
 foreach var in comuna_cod WAIS_t_num WAIS_t_vo {
     di "`var'"
 gen `var'=`var'_2010
@@ -1748,6 +1760,7 @@ replace married34 = married_2010 if birth_year <= 2008 & married_2010 != .
 replace married34 = married_2012 if inrange(birth_year,2009,2010) & married_2012 != .
 replace married34 = married_2017 if inrange(birth_year,2011,2014) & married_2017 != .
 
+
 ****Variables de Jorge
 replace min_center_34 = min_center_34/1000
 // replace min_center_02 = min_center_02/1000
@@ -1962,6 +1975,15 @@ rename (battelle_age* tvip_age* cbcl_age*) (battelle_age*_z tvip_age*_z cbcl_age
 egen battelle = rowmean(battelle_age*_z)
 egen tvip = rowmean(tvip_age*_z)
 egen cbcl = rowmean(cbcl*_age*_z)
+
+*test3 == edad 3 a 5. test6 == edades 6 +
+egen battelle3 = rowmean(battelle_age3_z battelle_age4_z battelle_age5_z)
+egen tvip3 = rowmean(tvip_age3_z tvip_age4_z tvip_age5_z)
+egen cbcl3 = rowmean(cbcl*_age3_z cbcl*_age4_z cbcl*_age5_z)
+
+egen battelle6 = rowmean(battelle_age6_z battelle_age7_z battelle_age8_z battelle_age9_z battelle_age10_z battelle_age11_z)
+egen tvip6 = rowmean(tvip_age6_z tvip_age7_z tvip_age8_z tvip_age9_z tvip_age10_z tvip_age11_z)
+egen cbcl6 = rowmean(cbcl*_age6_z cbcl*_age7_z cbcl*_age8_z cbcl*_age9_z cbcl*_age10_z cbcl*_age11_z)
 
 
 foreach var in d_work wage hours_w{
