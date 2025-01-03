@@ -25,7 +25,19 @@ else if "`user'" == "Jorge"{
   global results "/Users/jorge-home/Dropbox/Research/DN-early/Dynamic_childcare/Results"          
 }
 
+if "`c(username)'" == "Cecilia" {
+	global des		"C:\Users\Cecilia\Mi unidad\Uandes\Jardines_elpi"
+	global db 		"$des/Data"
+	global results 	"$des/Tex/figures_tables"
+	global codes 	"C:\Users\Cecilia\Documents\GitHub\Welfare-effects"
+}
 
+	if "`c(username)'" == "ccorrea"{
+	global des		"G:\Mi unidad\Uandes\Jardines_elpi"
+	global db 		"$des/Data"
+	global results 	"$des/Tex/figures_tables"
+	global codes 	"C:\Users\ccorrea\OneDrive - Universidad de los Andes\Documentos\GitHub\Welfare-effects"
+}
 
 set more off
 program drop _all
@@ -116,13 +128,14 @@ forvalues x = 1/6{
 	
 }
 
+
 twoway (scatter y coeff_corr, msymbol(circle)  mcolor(blue*.8) mfcolor(blue*.8)) ///
   (rcap ub_corr lb_corr y, horizontal lpattern(solid) lcolor(blue*.8) ) ///
   (scatter y coeff, msymbol(circle)  mcolor(sand*.8) mfcolor(sand*.8)) ///
   (rcap ub lb y, horizontal lpattern(solid) lcolor(sand*.8) ), ///
  xtitle("Correlation")  ytitle("") legend(order(1 "No controls" 3 "Full controls"))  ///
  ylabel(-2.5 "Father college +" -6.5 "Married" -10.5 "Smoke during pregnancy" -14.5 "Alcohol during pregnancy" ///
- 	-18.5 "Length at birth" -22.5 "Weight at birth", angle(horizontal)) ///
+ 	-18.5 "Weight at birth" -22.5 "Length at birth", angle(horizontal)) ///
  xlabel(-0.1(0.05)0.1)  ///
  graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white)) ///
  plotregion(fcolor(white) lcolor(white)  ifcolor(white) ilcolor(white))  ///
@@ -130,3 +143,4 @@ twoway (scatter y coeff_corr, msymbol(circle)  mcolor(blue*.8) mfcolor(blue*.8))
  
  
 graph export "$results/validity.pdf", as(pdf) replace
+
