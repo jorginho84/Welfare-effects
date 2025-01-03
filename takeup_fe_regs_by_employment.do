@@ -126,8 +126,8 @@ twoway (bar effects x, barwidth(1.2) color(black*.7) fintensity(.5)  lwidth(0.4)
 	ylabel(, nogrid)  ///
 	graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white))  ///
 	plotregion(fcolor(white) lcolor(white)  ifcolor(white) ilcolor(white))  ///
-	scheme(s2mono) scale(1.2) yline(0, lpattern(dash) lcolor(black)) ///
-	text(`beta1_pos' 1.02  "{&beta} = `beta_takeup_1'%`stars_1'" `beta2_pos' 3.02  "{&beta} = `beta_takeup_2'%`stars_2'", place(ne) color(blue*.8) size(medsmall)) 
+	scheme(s2mono) scale(1.7) yline(0, lpattern(dash) lcolor(black)) ///
+	text(`beta1_pos' 1.02  "{&beta} = `beta_takeup_1'%`stars_1'" `beta2_pos' 3.02  "{&beta} = `beta_takeup_2'%`stars_2'", place(ne) color(blue*.8) size(vsmall)) 
 	
 
 graph export "$results/take-up_low_high.pdf", as(pdf) replace

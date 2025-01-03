@@ -79,9 +79,9 @@ foreach depvar in "battelle" "tvip"{
 	preserve
 	foreach age of numlist 3 6 {
 		reghdfe `depvar'`age' min_center_NM $controls if cat_income == `c', absorb(cohort#comuna_cod) vce(cluster comuna_cod)
-		local beta_takeup_`age' = -_b[min_center_NM]
-		local ub_takeup_`age' = (-_b[min_center_NM] + _se[min_center_NM]*invnormal(0.975))
-		local lb_takeup_`age' = (-_b[min_center_NM] - _se[min_center_NM]*invnormal(0.975))
+		local beta_takeup_`age' = string(round(-_b[min_center_NM]*100,.001),"%9.3f")
+		local ub_takeup_`age' = (-_b[min_center_NM] + _se[min_center_NM]*invnormal(0.975))*100
+		local lb_takeup_`age' = (-_b[min_center_NM] - _se[min_center_NM]*invnormal(0.975))*100
 		local tstat = _b[min_center_NM] / _se[min_center_NM]
 		local pval_`age' = 2*(1-normal(abs(`tstat')))
 	}			
@@ -101,7 +101,7 @@ foreach depvar in "battelle" "tvip"{
 	
 	*Valores mostrados en el graf:
 	foreach g in 3 6{
-	local beta`g' = string(round(`beta_takeup_`g''*100,.001),"%9.3f")
+// 	local beta`g' = string(round(`beta_takeup_`g''*100,.001),"%9.3f")
 	
 	*di `pval'
 	if `pval_`g'' <= 0.01{
@@ -119,21 +119,21 @@ foreach depvar in "battelle" "tvip"{
 	}
 	}
 	*Position of text
-	local beta3_pos = `beta_takeup_3' + .002
-	local beta6_pos = `beta_takeup_6' + .002
+	local beta3_pos = `beta_takeup_3' + .2
+	local beta6_pos = `beta_takeup_6' + .2
 	
 	egen x = seq()
 
 	twoway (bar effects x, barwidth(1.2) color(black*.7) fintensity(.5)  lwidth(0.4) ) ///
 	(scatter effects x, msymbol(circle) mcolor(black*.7) mfcolor(black*.7)) ///
 		(rcap ub lb x, lpattern(solid) lcolor(black*.7) ), ///
-		ytitle("Effect on `name_`x''")  xtitle("") legend(off) ///
+		ytitle("Effect on `name_`x'' (in % of {&sigma})")  xtitle("") legend(off) ///
 		xlabel(1 "Ages 3-5" 3 "Ages 6-11", noticks) ///
-		ylabel(-0.02(0.02)0.04, nogrid)  ///
+		ylabel(-2(2)4, nogrid)  ///
 		graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white))  ///
 		plotregion(fcolor(white) lcolor(white)  ifcolor(white) ilcolor(white))  ///
 		scheme(s2mono) scale(1.7) yline(0, lpattern(dash) lcolor(black)) ///
-		text(`beta3_pos' 1.02  "{&beta} = `beta3'%`stars_3'" `beta6_pos' 3.02  "{&beta} = `beta6'%`stars_6'", place(ne) color(blue*.8) size(vsmall)) 
+		text(`beta3_pos' 1.02  "{&beta} = `beta_takeup_3'%`stars_3'" `beta6_pos' 3.02  "{&beta} = `beta_takeup_6'%`stars_6'", place(ne) color(blue*.8) size(vsmall)) 
 		
 
 	graph export "$results/fe_estimates_`depvar'_short-longterm_catincome`c'.pdf", as(pdf) replace
