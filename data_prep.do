@@ -1313,15 +1313,6 @@ foreach m in 1000 5000{
 }
 	drop dist_min_* 
 
-	
-*Merge w/ población por comuna edad NM
-// rename comuna_cod comuna
-merge m:1 cohort comuna_cod using "$db/Poblacion_edad23_comuna_cohorte.dta"
-drop if _merge == 2 //using only
-drop _merge
-
-*N datos que tenemos, por comuna y cohorte
-bys comuna_cod cohort: egen pobl_edadNM_ELPI = count(folio)
 
 ********************************************************************************
 **# *********************** * *VARIABLES* * ************************************
