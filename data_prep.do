@@ -342,7 +342,7 @@ merge m:1 folio using "$db/Datos Comunales/Base_Cod_Comuna_ELPI2012"
 	ren b38 		q_control		//ojo NS/NR, different from 2010 version
 	*q_control takes values from 0 to 80 (2010 está en secciones, se igual a 2010)
 	recode q_control (1/2 = 1) (3/4 = 2) (5/7 = 3) (8/80 = 4) (88 99 = .)
-	label define q_control 1 "Menos de 3" 2 "Entre 3 y 4" 3 "Entre 5 y 7" 4 "8 o más", modify
+	label define q_control 1 "Menos de 3" 2 "Entre 3 y 4" 3 "Entre 5 y 7" 4 "Más de 7", modify
 	label val q_control q_control
 	
 	ren fexp_enc0 	FE_enc
@@ -680,14 +680,14 @@ label var dum_sibling_part "1 if child's young sibling(s) goes to cc (P-K or low
 	sum monthly_Y, d
 	gen elegible_p50 = monthly_Y <= r(p50)
 	replace elegible_p50 = . if monthly_Y == .
-	 
-	foreach v of varlist dum_smoke dum_alc dum_drug{
-	    recode `v' (8 = .)
-	}
-	recode preg_control (9 = .)
+	
+	recode dum_drug (8 = .) (1 = 0) (2/3 = 1)
+	recode dum_alc (8 = .) (1 = 0) (2/3 = 1)
+	recode dum_smoke (8 = .) (2 = 0)
+	recode preg_control (9 = .) (2 = 0)
 	recode q_sano (88 = .)
-	recode q_control (1/2 = 1) (3/4 = 2) (5/7 = 3) (8/99 = 4) 
-	label define q_control 1 "Menos de 3" 2 "Entre 3 y 4" 3 "Entre 5 y 7" 4 "8 o más", modify //Para hacer pregunta equivalente con ELPI 2010
+	recode q_control (1/2 = 1) (3/4 = 2) (5/7 = 3) (8/99 = 4) //No se asume 99 como missing, no sé muy bien qué hacer con esos valores. 
+	label define q_control 1 "Menos de 3" 2 "Entre 3 y 4" 3 "Entre 5 y 7" 4 "Más de 7", modify //Para hacer pregunta equivalente con ELPI 2010
 	label val q_control q_control
 *--------------------------------------*
 *----------"Hogares" database----------*
@@ -1104,6 +1104,18 @@ gen `var'=`var'_2010
 replace `var'=`var'_2012 if `var'==.
 replace `var'=`var'_2017 if `var'==.
 }
+*Controles embarazo
+gen controles = q_control_2010 == 4
+replace controles = 1 if q_control_2012 == 4
+replace controles = . if q_control_2010 == . & q_control_2012 == .
+
+*Peso al nacer
+gen PESO = PESO_2010
+replace PESO = PESO_2012 if PESO == . 
+
+*Talla al nacer
+gen TALLA = TALLA_2010
+replace TALLA = TALLA_2012 if TALLA == . 
 
 *Siblings vars
 foreach var of varlist dum_siblings tot_sib dum_young_siblings{
@@ -1991,18 +2003,21 @@ gen final = 1
 foreach var in min_center_34 public_34 d_work_18 wage_18 hours_w_18{
 	replace final = 0 if `var' == .
 }
-global controls m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home
+
+// global controls m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home
+global controls m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings f_home PESO TALLA controles dum_smoke dum_alc
 foreach v of varlist $controls{
 	replace final = 0 if `v' == .
 } 
-keep if final == 1
-drop final
+keep if final == 1 // (10,894 observations deleted)
 
 *Keep final sample e(sample) = 1 for all LM models.
 foreach v of varlist d_work_18 wage_18 hours_w_18{
-reghdfe wage_18 min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
-keep if e(sample) == 1
+reghdfe `v' min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
+replace final = 0 if e(sample) == 0
 }
+keep if final == 1 //(65 observations deleted)
+drop final
 
 save "$db/data_estimate", replace
 
