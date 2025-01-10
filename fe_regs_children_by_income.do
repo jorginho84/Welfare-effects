@@ -58,7 +58,8 @@ set seed 100
 
 use "$db/data_estimate", clear
 
-global controls i.m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home
+// global controls i.m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home
+global controls i.m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings f_home PESO TALLA controles dum_smoke dum_alc
 
 *Work at baseline
 recode d_work_t02 (0 = 1) (1 = 2) , gen(cat_income) //Low income = did not work 2 years before birth. 
@@ -122,6 +123,17 @@ foreach depvar in "battelle" "tvip"{
 	local beta3_pos = `beta_takeup_3' + .2
 	local beta6_pos = `beta_takeup_6' + .2
 	
+	if "`depvar'" == "battelle" {
+		local min = -4
+		local max = 6
+		local minr = -4
+	}
+	else if "`depvar'" == "tvip" {
+		local min = -2
+		local max = 4
+		local minr = -3
+	}
+	
 	egen x = seq()
 
 	twoway (bar effects x, barwidth(1.2) color(black*.7) fintensity(.5)  lwidth(0.4) ) ///
@@ -129,7 +141,7 @@ foreach depvar in "battelle" "tvip"{
 		(rcap ub lb x, lpattern(solid) lcolor(black*.7) ), ///
 		ytitle("Effect on `name_`x'' (in % of {&sigma})")  xtitle("") legend(off) ///
 		xlabel(1 "Ages 3-5" 3 "Ages 6-11", noticks) ///
-		ylabel(-2(2)4, nogrid)  ///
+		ylabel(`min'(2)`max', nogrid) yscale(range(`minr' `max')) ///
 		graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white))  ///
 		plotregion(fcolor(white) lcolor(white)  ifcolor(white) ilcolor(white))  ///
 		scheme(s2mono) scale(1.7) yline(0, lpattern(dash) lcolor(black)) ///
