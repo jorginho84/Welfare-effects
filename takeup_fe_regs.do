@@ -56,7 +56,8 @@ set seed 100
 
 use "$db/data_estimate", clear
 
-global controls i.m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home
+// global controls i.m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home
+global controls i.m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings f_home PESO TALLA controles dum_smoke dum_alc
 
 
 *----------------------*
@@ -71,8 +72,6 @@ egen TVIP = rowmean(TVIP_age_2 TVIP_age_3)
 
 
 /*---Relevance check---*/ 
-// 1.5 qué percentil es? en N de datos
-// Para explicar que la estimación es más ruidosa.
 
 qui xi : reghdfe min_center_NM  $controls, absorb(cohort#comuna_cod) resid
 predict min_u_34, residuals
@@ -80,7 +79,8 @@ predict min_u_34, residuals
 
 *Overall
 qui: reghdfe public_34 min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
-local beta = string(round(-_b[min_center_NM]*100,.1),"%9.1f")
+local beta_takeup = string(round(_b[min_center_NM]*100,.1),"%9.1f")
+local se_beta_takeup = string(round(_se[min_center_NM]*100,.1),"%9.1f")
 	local tstat = _b[min_center_NM] / _se[min_center_NM]
 
 	local pval = 2*(1-normal(abs(`tstat')))
@@ -115,10 +115,13 @@ twoway (histogram min_center_NM if min_center_NM <= `pctile', lwidth(medium) lco
 	 graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white)) ///
 	 plotregion(fcolor(white) lcolor(white)  ifcolor(white) ilcolor(white)) ///
 	 scheme(s2mono) scale(1.1) ///
-	 text(1.3 2  "{&beta} = `beta'`stars'" , place(ne) color(blue*.8) size(medsmall)) 
+	 text(1.3 2  "Overall effect = `beta_takeup' pp (S.E. = `se_beta_takeup')" , /*place(ne)*/ color(blue*.8) size(small)) 
 
-graph export "$results/take-up_fes_`pctile'.pdf", as(pdf) replace
-}
+graph export "$results/take-up_fes.pdf", as(pdf) replace
+
+
+
+stop ! 
 /*
 *Figure: Take-up effects
 clear
@@ -174,10 +177,10 @@ forvalues x = 1/2{
 }
 
 
-*Overall
-qui: reghdfe public_34 min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
-local beta_takeup = string(round(-_b[min_center_NM]*100,.1),"%9.1f")
-local se_beta_takeup = string(round(_se[min_center_NM]*100,.1),"%9.1f")
+// *Overall
+// qui: reghdfe public_34 min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
+// local beta_takeup = string(round(-_b[min_center_NM]*100,.1),"%9.1f")
+// local se_beta_takeup = string(round(_se[min_center_NM]*100,.1),"%9.1f")
 
 
 
