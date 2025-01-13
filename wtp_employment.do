@@ -8,15 +8,17 @@ if "`user'" == "andres" {
     cd "/Users/andres/Dropbox/jardines_elpi"
     global db "/Users/andres/Dropbox/jardines_elpi/data"
     global codes "/Users/andres/Dropbox/jardines_elpi/codes"
-} else if "`user'" == "Jorge-server" {
-    global db "/home/jrodriguez/childcare/data"
-    global codes "/home/jrodriguez/childcare/codes"
-    global km "/home/jrodriguez/childcare/data"
-    global results "/home/jrodriguez/childcare/results"
-} else if "`user'" == "Jorge" {
+} 
+else if "`user'" == "Jorge-server" {
+    global db "/home/jrodriguezo/childcare/data"
+    global codes "/home/jrodriguezo/childcare/codes"
+    global results "/home/jrodriguezo/childcare/results"
+} 
+else if "`user'" == "Jorge" {
     global db "/Users/jorge-home/Dropbox/Research/DN-early/Dynamic_childcare/Data"
     global results "/Users/jorge-home/Dropbox/Research/DN-early/Dynamic_childcare/Results"
-} else if "`user'" == "Antonia" {
+} 
+else if "`user'" == "Antonia" {
     global des "/Volumes/AKAC20/CC/CC_Jardines/Datos-Jardines"
     cd "$des"
     global db "$des/Data"
@@ -67,6 +69,12 @@ rotate, quartimin
 predict cog_factor_aux
 egen cog_factor = std(cog_factor_aux)
 
+// Hourly wage
+forvalues x = 7/8 {
+    gen hwage_t`x' = wage_t`x'/(hours_w_t`x'*4.5) if wage_t`x' != 0 & hours_w_t`x' != 0
+}
+egen hwage_18 = rowmean(hwage_t7 hwage_t8)
+
 // Program to calculate benefits and costs
 program benefits_cost, rclass
     tempvar pz pcat min_center_34_neg
@@ -88,12 +96,12 @@ program benefits_cost, rclass
     local mean_wage_D1 = r(mean)
     
     // Reduced form: effect on cognitive skills
-    qui: reghdfe TVIP min_center_34 $controls, absorb(cohort#comuna_cod) vce(robust)
+    qui: reghdfe cog_factor min_center_34 $controls, absorb(cohort#comuna_cod) vce(robust)
     local delta_cog = -_b[min_center_34]
     
-    // WTPs
-    local wtp_ch = `delta_cog' * $cog_earnings * $earnings
-    local wtp_p = `mean_wage_D1' * `mean_34' * $kms_hours * 5 * 52
+    // WTPs for a one-hour reduction in distance
+    local wtp_ch = `delta_cog' * $cog_earnings * $earnings / $kms_hours
+    local wtp_p = `mean_wage_D1' * `mean_34' * 5 * 52
     local wtp = `wtp_ch' + `wtp_p'
     
     return scalar wtp_ch = `wtp_ch'
@@ -109,8 +117,8 @@ program benefits_cost, rclass
     
     qui: reghdfe hours_w_18 min_center_34 $controls, absorb(cohort#comuna_cod) vce(robust)
     local delta_hours = -_b[min_center_34]
-    local rev_parents = `delta_hours' * `mean_wage' * 52 * $tau /* assuming no effects from infra-marginal parents */
-    local rev_children = `delta_cog' * $cog_earnings * $earnings * $tau
+    local rev_parents = `delta_hours' * `mean_wage' * 52 * $tau / $kms_hours /* assuming no effects from infra-marginal parents */
+    local rev_children = `delta_cog' * $cog_earnings * $earnings * $tau / $kms_hours
     
     return scalar rev_parents = `rev_parents'
     return scalar rev_children = `rev_children'
@@ -178,8 +186,8 @@ forvalues c = 1/2 {
 	}
 
 	// MVPF Figure 1
-	local beta_wtp_p = betas_original[1,1]
-	local beta_wtp_c = betas_original[2,1]
+	local beta_wtp_c = betas_original[1,1]
+	local beta_wtp_p = betas_original[2,1]
 	local beta_wtp = betas_original[3,1]
 
 	local prov_cost = betas_original[4,1]
@@ -213,8 +221,8 @@ forvalues c = 1/2 {
 	replace ub = `right_7' if _n == 8
 	replace ub = `right_8' if _n == 10
 
-	replace beta = `beta_wtp_p' if _n == 1
-	replace beta = `beta_wtp_c' if _n == 2
+	replace beta = `beta_wtp_c' if _n == 1
+	replace beta = `beta_wtp_p' if _n == 2
 	replace beta = `beta_wtp' if _n == 3
 	replace beta = `prov_cost' if _n == 5
 	replace beta = `rev_c' if _n == 6
@@ -232,7 +240,7 @@ forvalues c = 1/2 {
 
 	egen x = seq()
 
-	label define lab_aux 1 "WTP parents" 2 "WTP children" 3 "WTP" 4 "" 5 "Provision cost" 6 "Revenues (parents)" 7 "Revenues (children)" 8 "Costs" 9 "" 10 "MVPF"
+	label define lab_aux 1 "WTP children" 2 "WTP parents" 3 "WTP" 4 "" 5 "Provision cost" 6 "Revenues (children)" 7 "Revenues (parents)" 8 "Costs" 9 "" 10 "MVPF"
 	label values x lab_aux
 
 	splitvallabels x, length(10)
@@ -246,7 +254,7 @@ forvalues c = 1/2 {
 		xlabel(`r(relabel)', labsize(vsmall)) ylabel(,nogrid) ylabel(0(2)20, nogrid axis(2)) ///
 		graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white)) plotregion(fcolor(white) lcolor(white) ifcolor(white) ilcolor(white)) ///
 		scheme(s2mono) xline(4, lpattern(dash) lcolor(black)) xline(9, lpattern(dash) lcolor(black))
-	graph export "$results/mvpf.pdf", as(pdf) replace
+	graph export "$results/mvpf_employment`c'.pdf", as(pdf) replace
 }
 
 
