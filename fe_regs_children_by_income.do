@@ -59,7 +59,7 @@ set seed 100
 use "$db/data_estimate", clear
 
 // global controls i.m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home
-global controls i.m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings f_home PESO TALLA controles dum_smoke dum_alc
+global controls m_age m_college WAIS_t_num WAIS_t_vo f_home dum_young_siblings  /*PESO TALLA*/ controles dum_smoke dum_alc
 
 *Work at baseline
 recode d_work_t02 (0 = 1) (1 = 2) , gen(cat_income) //Low income = did not work 2 years before birth. 
@@ -120,8 +120,8 @@ foreach depvar in "battelle" "tvip"{
 	}
 	}
 	*Position of text
-	local beta3_pos = `beta_takeup_3' + .2
-	local beta6_pos = `beta_takeup_6' + .2
+	local beta3_pos = `beta_takeup_3' + .3
+	local beta6_pos = `beta_takeup_6' + .3
 	
 	if "`depvar'" == "battelle" {
 		local min = -4

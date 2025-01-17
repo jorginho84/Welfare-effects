@@ -64,8 +64,8 @@ local sd_TVIP = string(round(r(sd),.001),"%9.3f")
 // local sd_CBCL = string(round(r(sd),.001),"%9.3f")
 
 qui: sum d_work_18
-local mean_d_work_18 = string(round(r(mean),.1),"%9.3f")
-local sd_d_work_18 = string(round(r(sd),.1),"%9.3f")
+local mean_d_work_18 = string(round(r(mean),.001),"%9.3f")
+local sd_d_work_18 = string(round(r(sd),.001),"%9.3f")
 
 foreach var in  wage hours_w  {	
 	qui: sum `var'_18
@@ -105,13 +105,20 @@ qui: sum m_age
 local mean_m_age = string(round(r(mean),.01),"%9.2f")
 local sd_m_age = string(round(r(sd),.01),"%9.2f")
 
-foreach var in  dum_young_siblings risk f_home{
+foreach var in  dum_young_siblings f_home controles dum_smoke dum_alc{
 	qui: sum `var'
 	local mean_`var' = string(round(r(mean),.001),"%9.3f")
 	local sd_`var' = string(round(r(sd),.001),"%9.3f")
 	
 }
 
+// qui: sum PESO
+// local mean_PESO = string(round(r(mean),.1),"%9.1f")
+// local sd_PESO = string(round(r(sd),.1),"%9.1f")
+//
+// qui: sum TALLA
+// local mean_TALLA = string(round(r(mean),.01),"%9.2f")
+// local sd_TALLA = string(round(r(sd),.01),"%9.2f")
 
 count 
 local n_obs = r(N)
@@ -144,17 +151,21 @@ file open stats using "$results/stat_table.tex", write replace
 	file write stats "    &  &                      & &              \\" _n
 	
 	file write stats "\textbf{Covariates}         &  &  & &    \\" _n
-	file write stats "Mother: less than high school &  &           `mean_dum_m_educ_1'               & &        -                \\" _n
-	file write stats "Mother: high school &  &           `mean_dum_m_educ_2'               & &        -                \\" _n
-	file write stats "Mother: college incomplete &  &           `mean_dum_m_educ_3'               & &       -                 \\" _n
+	file write stats "Mother: age &  &             `mean_m_age'             & &         `sd_m_age'               \\" _n
+// 	file write stats "Mother: less than high school &  &           `mean_dum_m_educ_1'               & &        -                \\" _n
+// 	file write stats "Mother: high school &  &           `mean_dum_m_educ_2'               & &        -                \\" _n
+// 	file write stats "Mother: college incomplete &  &           `mean_dum_m_educ_3'               & &       -                 \\" _n
 	file write stats "Mother: college + & &                    `mean_dum_m_educ_4'      & &          -             \\" _n
 	file write stats "Wechsler Adults Intelligence Scale (number retention) &  &     `mean_WAIS_t_num'                     & &         `sd_WAIS_t_num'               \\" _n
 	file write stats "Wechsler Adults Intelligence Scale (vocabulary) &  &         `mean_WAIS_t_vo'                 & &         `sd_WAIS_t_num'               \\" _n
-	file write stats "Mother: age &  &             `mean_m_age'             & &         `sd_m_age'               \\" _n
-	file write stats "Have younger siblings  &  &      `mean_dum_young_siblings'                    & &        -               \\" _n
-	file write stats "Risky pregnancy  &  &         `mean_risk'                 & &             `sd_risk'           \\" _n
 	file write stats "Father at home  &  &              `mean_f_home'            & &        -                \\" _n
-	
+	file write stats "Have younger siblings  &  &      `mean_dum_young_siblings'                    & &        -               \\" _n
+// 	file write stats "Risky pregnancy  &  &         `mean_risk'                 & &             `sd_risk'           \\" _n
+// 	file write stats "Weight at birth (g)&  &     `mean_PESO'                     & &         `sd_PESO'               \\" _n
+// 	file write stats "Lenght at birth (cm) &  &         `mean_TALLA'                 & &         `sd_TALLA'               \\" _n
+	file write stats "Risk: not all pregnancy controls  &  &              `mean_controles'            & &        -                \\" _n
+	file write stats "Risk: smoked during pregnancy  &  &              `mean_dum_smoke'            & &        -                \\" _n
+	file write stats "Risk: alcohol during pregnancy  &  &              `mean_dum_alc'            & &        -                \\" _n 
 	file write stats " & & & & \\" _n		
 	file write stats "\midrule" _n
 	file write stats "N  &  &    `n_obs'      & &       \\" _n
