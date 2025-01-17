@@ -56,7 +56,7 @@ set seed 100
 use "$db/data_estimate", clear
 
 // global controls i.m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home
-global controls i.m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings f_home PESO TALLA controles dum_smoke dum_alc
+global controls m_age m_college WAIS_t_num WAIS_t_vo f_home dum_young_siblings  /*PESO TALLA*/ controles dum_smoke dum_alc
 
 *--------------------------------------*
 **# Effects by age (figures) ----------*
@@ -128,7 +128,7 @@ foreach depvar in "battelle" "tvip"{
 		graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white))  ///
 		plotregion(fcolor(white) lcolor(white)  ifcolor(white) ilcolor(white))  ///
 		scheme(s2mono) scale(1.7) yline(0, lpattern(dash) lcolor(black)) ///
-		text(`beta3_pos' 1.02  "{&beta} = `beta_takeup_3'%`stars_3'" `beta6_pos' 3.02  "{&beta} = `beta_takeup_6'%`stars_6' ", place(ne) color(blue*.8) size(small)) 
+		text(`beta3_pos' 1.02  "{&beta} = `beta_takeup_3'%`stars_3'" `beta6_pos' 3.02  "{&beta} = `beta_takeup_6'%`stars_6' ", place(ne) color(blue*.8) size(vsmall)) 
 		
 		
 		

@@ -75,7 +75,7 @@ use "$db/elpi_original/Entrevistada_2010", clear
 merge m:1 folio using "$db/Datos Comunales/Base_Cod_Comuna_ELPI2010"
 
 	* Keep useful variables
-	keep folio region area a4 a11 g1 g2 g7a g9 g31 fexp_enc comuna_lab comuna_cod
+	keep folio region area a4 a11 g1 g2 g7a g9 g31 fexp_enc comuna_lab comuna_cod g23 g24
 	ren a4 			dum_mother //1=yes 2=no
 	ren a11 		dum_father //1=yes 2=no
 
@@ -98,6 +98,12 @@ merge m:1 folio using "$db/Datos Comunales/Base_Cod_Comuna_ELPI2010"
 	
 	label define sino 1 "Sí" 0 "No", modify
 	label values preg_control dum_smoke dum_alc dum_sano sino
+	
+	*Talla y peso al nacer
+	recode g23 (88 99 = .)
+	recode g24 (88 99 = .)
+	replace g24 = g24*1000 //A pesar de que en el cuestionario indica que las respuestas son en gr, los datos corresponden a pesos normales en kg.
+	rename (g23 g24) (talla_nac peso_nac)
 	
 	sort folio
 	tempfile db1
@@ -185,8 +191,6 @@ replace trab_aux = . if orden == 1
 	replace educ = 2 if b2n == 8  & b2c >  2
 	replace educ = 3 if b2n == 12 | b2n == 14 | b2n == 16 //less than college
 	replace educ = 4 if b2n == 13 | b2n == 15 | b2n == 17 | b2n == 18 //college
-	label define educ 1 "Less than highschool" 2 "Highschool" 3 "Less than college" 4 "College"
-	label val educ educ
 	
 	* Educ madre y padre
 	gen m_educ = educ if inlist(a16, 1, 3) | (a16 == 5 & a18 == 2) //Madre/madrastra
@@ -212,6 +216,9 @@ replace trab_aux = . if orden == 1
 	gen dum_sibling_part = (dum_young_siblings == 1 & b1==1 & b2n<=5) // 1 if child has siblings younger than 4 and they go to cc (pre-k or lower).
 	
 collapse (count) n_integrantes = orden (min) *_sch *_educ m_age gender (max) *_home m_maincarer dum_siblings dum_young_siblings dum_sibling_part (sum) tot_sib = dum_siblings (mean) d11m trab_aux , by(folio fexp_hog)
+
+	label define educ 1 "Less than highschool" 2 "Highschool" 3 "Less than college" 4 "College", modify
+	label val m_educ f_educ educ
 	
 	replace dum_sibling_part = . if dum_young_siblings == 0
 
@@ -324,7 +331,7 @@ use "$db/elpi_original/Entrevistada_2012", clear
 merge m:1 folio using "$db/Datos Comunales/Base_Cod_Comuna_ELPI2012"
 
 	* keep useful variables	
-	keep folio region area a2 b37 b38 b8 b12 b41 fexp_enc0 fexp_encP comuna_cod comuna_lab muestra
+	keep folio region area a2 b37 b38 b8 b12 b41 fexp_enc0 fexp_encP comuna_cod comuna_lab muestra b28* b27
 	gen dum_mother = (a2==1)
 	
 	ren b37 		preg_control
@@ -344,6 +351,13 @@ merge m:1 folio using "$db/Datos Comunales/Base_Cod_Comuna_ELPI2012"
 	recode q_control (1/2 = 1) (3/4 = 2) (5/7 = 3) (8/80 = 4) (88 99 = .)
 	label define q_control 1 "Menos de 3" 2 "Entre 3 y 4" 3 "Entre 5 y 7" 4 "Más de 7", modify
 	label val q_control q_control
+	
+	*Peso y talla al nacer
+	recode b28_k (9 = .)
+	recode b28_g (999 = .)
+	gen peso_nac = b28_k*1000 + b28_g
+	recode b27 (88 99 = .)
+	rename b27 talla_nac
 	
 	ren fexp_enc0 	FE_enc
 	ren fexp_encP 	FE_P
@@ -435,8 +449,6 @@ replace trab_aux = . if orden == 1
 	replace educ = 2 if j2n == 10 & j2c >  2
 	replace educ = 3 if j2n == 14 | j2n == 14 | j2n == 16 //less than college
 	replace educ = 4 if j2n == 13 | j2n == 15 | j2n == 17 | j2n == 18 //college
-	label define educ 1 "Less than highschool" 2 "Highschool" 3 "Less than college" 4 "College"
-	label val educ educ
 	
 	* Educ madre y padre
 	gen m_educ = educ if inlist(i2, 1, 3) | (i2 == 5 & i4 == 2)	//Madre o madrastra
@@ -463,6 +475,8 @@ replace trab_aux = . if orden == 1
 
 collapse (count) n_integrantes = orden (min) *_sch *_educ m_age gender (max) *_home m_maincarer dum_siblings dum_young_siblings dum_sibling_part (sum) tot_sib = dum_siblings (mean) l11_monto trab_aux, by(folio fexp_hog0 fexp_hogP)
 	
+	label define educ 1 "Less than highschool" 2 "Highschool" 3 "Less than college" 4 "College", modify
+	label val m_educ f_educ educ
 	replace dum_sibling_part = . if dum_young_siblings == 0
 
 	*Generate dummy that both parents live with children (no matter the civil status)
@@ -1104,18 +1118,23 @@ gen `var'=`var'_2010
 replace `var'=`var'_2012 if `var'==.
 replace `var'=`var'_2017 if `var'==.
 }
+
 *Controles embarazo
-gen controles = q_control_2010 == 4
-replace controles = 1 if q_control_2012 == 4
+gen controles = q_control_2010 != 4
+replace controles = . if q_control_2010 == .
+replace controles = 1 if q_control_2012 != 4 & controles == .
 replace controles = . if q_control_2010 == . & q_control_2012 == .
 
+
 *Peso al nacer
-gen PESO = PESO_2010
-replace PESO = PESO_2012 if PESO == . 
+gen PESO = peso_nac_2010
+replace PESO = peso_nac_2012 if PESO == . 
+label var PESO "Peso al nacer (g)"
 
 *Talla al nacer
-gen TALLA = TALLA_2010
-replace TALLA = TALLA_2012 if TALLA == . 
+gen TALLA = talla_nac_2010
+replace TALLA = talla_nac_2012 if TALLA == . 
+label var TALLA "Talla al nacer (cm)"
 
 *Siblings vars
 foreach var of varlist dum_siblings tot_sib dum_young_siblings{
@@ -1867,7 +1886,7 @@ drop  d3_* d10_* /*tot*_y**/ h1_2017 comuna_lab_* comuna_size big_comuna
 order folio cohort_school birth_year region* *comuna* FE* fexp_* ///
 wage* edad_meses* tot_sib* dum_sibl* dum_young* f_home* married* n_integrantes* ///
 m_age f_educ* m_educ* f_sch* gender* m_sch* dum_work* monthly_Y* d_work* elegible* ///
-dum_smoke* dum_alc* PESO_* TALLA_* q_control* ///
+dum_smoke* dum_alc* PESO peso_nac* TALLA talla_nac* q_control* ///
 dum_center* d_cc_* public* min_center_* /*N_centers* cap_* mat_* totc* totm**/ ///
 BATTELLE* TVIP* ASQ* CBCL* WAIS_t* risk 
 
@@ -1994,19 +2013,29 @@ foreach var in d_work wage hours_w{
 	egen `var'_18=rowmean( `var'_t6 `var'_t7)
 }
 
+gen m_college = m_educ == 4
+replace m_college = . if m_educ == .
+gen f_college = f_educ == 4
+replace f_college = . if f_educ == .
+
 **# Keep final sample
 
 *Keeping if (1) has distance (2) has public_34 (3) has d_work (4) has all controls vars.
 *generate variable final = 1 if observation belongs to final sample
 gen final = 1
 
-foreach var in min_center_34 public_34 d_work_18 wage_18 hours_w_18{
+foreach var in min_center_34 public_34 d_work_18 wage_18 hours_w_18 {
+	count if `var' == .
+	di "`var' = " r(N)
 	replace final = 0 if `var' == .
 }
+keep if final == 1
 
 // global controls m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home
-global controls m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings f_home PESO TALLA controles dum_smoke dum_alc
+global controls m_age m_college WAIS_t_num WAIS_t_vo f_home dum_young_siblings  /*PESO TALLA*/ controles dum_smoke dum_alc
 foreach v of varlist $controls{
+	qui: count if `v' == .
+	di "`v' = " r(N)
 	replace final = 0 if `v' == .
 } 
 keep if final == 1 // (10,894 observations deleted)
