@@ -55,7 +55,7 @@ global delta_J = 59880/70 /* cost of additional center per child */
 global delta_N = 1654 /* Marginal cost of additional child */
 global J = 2061 /* baseline # of centers */
 global N = 30000 /* baseline number of children */
-global kms_hours = 2*(1.5/60) /* hours saved (driving 40kms per hour) */
+global kms_hours = 1/40 /* hours saved (driving 40kms per hour) */
 
 // Bootstrap draws
 local draws = 500
@@ -97,8 +97,8 @@ program benefits_cost, rclass
     local delta_cog = -_b[min_center_34]
     
     // WTPs for a one-hour reduction in distance
-    local wtp_ch = `delta_cog' * $cog_earnings * $earnings / $kms_hours
-    local wtp_p = `mean_wage_D1' * `mean_34'  * 5 * 52
+    local wtp_ch = `delta_cog' * $cog_earnings * $earnings 
+    local wtp_p = `mean_wage_D1' * `mean_34'  * 5 * 52 * $kms_hours
     local wtp = `wtp_ch' + `wtp_p'
     
     return scalar wtp_ch = `wtp_ch'
@@ -114,8 +114,8 @@ program benefits_cost, rclass
     
     qui: reghdfe hours_w_18 min_center_34 $controls, absorb(cohort#comuna_cod) vce(robust)
     local delta_hours = -_b[min_center_34]
-    local rev_parents = `delta_hours' * `mean_wage' * 52 * $tau / $kms_hours /* assuming no effects from infra-marginal parents */
-    local rev_children = `delta_cog' * $cog_earnings * $earnings * $tau / $kms_hours
+    local rev_parents = `delta_hours' * `mean_wage' * 52 * $tau  /* assuming no effects from infra-marginal parents */
+    local rev_children = `delta_cog' * $cog_earnings * $earnings * $tau 
     
     return scalar rev_parents = `rev_parents'
     return scalar rev_children = `rev_children'
