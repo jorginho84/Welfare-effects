@@ -1383,8 +1383,9 @@ replace d12_ = 0 	 if d12_ == . & inrange(d2_,2,5)
 replace d13_ = 0 	 if d13_ == . & inrange(d2_,2,5)
 drop d12t_
 
-replace d12_ = d12_/dolar_obs //para entregar salarios en dolares. VER SI NECESITAMOS TAMBIEN EN PESOS
-label var d12_ "Monto en USD. Ingreso líquido mensual promedio"
+local dollar_2024 = 943.58
+replace d12_ = (d12_ * inflation_adj)/ `dollar_2024' // to 2024 pesos and then to USD
+label var d12_ "Monto en 2024 USD. Ingreso liquido mensual promedio"
 
 forvalues t=1/10{
 	gen ocu_t`t' = .
