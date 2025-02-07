@@ -114,8 +114,8 @@ twoway (histogram min_center_NM if min_center_NM <= `pctile', lwidth(medium) lco
 	 xlabel(#3, noticks)  xsc(r(0 `pctile')) ylabel(, nogrid) /// 
 	 graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white)) ///
 	 plotregion(fcolor(white) lcolor(white)  ifcolor(white) ilcolor(white)) ///
-	 scheme(s2mono) scale(1.1) ///
-	 text(1.4 2  "Overall effect = `beta_takeup' pp (S.E. = `se_beta_takeup')" , /*place(ne)*/ color(blue*.8) size(medsmall)) 
+	 scheme(s2mono) scale(1.5) ///
+	 text(1.5 1.7  "Overall effect = `beta_takeup' pp" 1.37 2.12 "(S.E. = `se_beta_takeup')" , /*place(ne)*/ color(blue*.8) size(medsmall)) 
 
 graph export "$results/take-up_fes.pdf", as(pdf) replace
 
