@@ -80,19 +80,11 @@ foreach names in "Battelle" "TVIP"{
 local x = 1
 foreach depvar in "battelle" "tvip"{
 	preserve
-<<<<<<< Updated upstream
-	foreach age of numlist 3 6 {
-		reghdfe `depvar'`age' min_center_NM $controls if cat_income == `c', absorb(cohort#comuna_cod) vce(cluster comuna_cod)
-		local beta_takeup_`age' = string(round(-_b[min_center_NM]*100,.01),"%9.2f")
-		local ub_takeup_`age' = (-_b[min_center_NM] + _se[min_center_NM]*invnormal(0.975))*100
-		local lb_takeup_`age' = (-_b[min_center_NM] - _se[min_center_NM]*invnormal(0.975))*100
-=======
 	forvalues c=1/2 {
 		reghdfe `depvar'3 min_center_NM $controls if cat_educ == `c', absorb(cohort#comuna_cod) vce(cluster comuna_cod)
-		local beta_takeup_`c' = string(round(-_b[min_center_NM]*100,.001),"%9.3f")
+		local beta_takeup_`c' = string(round(-_b[min_center_NM]*100,.1),"%9.1f")
 		local ub_takeup_`c' = (-_b[min_center_NM] + _se[min_center_NM]*invnormal(0.975))*100
 		local lb_takeup_`c' = (-_b[min_center_NM] - _se[min_center_NM]*invnormal(0.975))*100
->>>>>>> Stashed changes
 		local tstat = _b[min_center_NM] / _se[min_center_NM]
 		local pval_`c' = 2*(1-normal(abs(`tstat')))
 	}	
@@ -150,22 +142,12 @@ foreach depvar in "battelle" "tvip"{
 	(scatter effects x, msymbol(circle) mcolor(black*.7) mfcolor(black*.7)) ///
 		(rcap ub lb x, lpattern(solid) lcolor(black*.7) ), ///
 		ytitle("Effect on `name_`x'' (in % of {&sigma})")  xtitle("") legend(off) ///
-<<<<<<< Updated upstream
-		xlabel(1 "Ages 3-5" 3 "Ages 6-11", noticks) xscale(range(0.5 3.8)) ///
-		ylabel(`min'(2)`max', nogrid) yscale(range(`minr' `max')) ///
-		graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white))  ///
-		plotregion(fcolor(white) lcolor(white)  ifcolor(white) ilcolor(white))  ///
-		scheme(s2mono) scale(1.9) yline(0, lpattern(dash) lcolor(black)) ///
-		text(`beta3_pos' 1  "{&beta}=`beta_takeup_3'%`stars_3'" `beta6_pos' 3  "{&beta}=`beta_takeup_6'%`stars_6'", place(ne) color(blue*.8) size(medsmall)) 
-=======
-		xlabel(1 "Less than HS" 3 ">= HS", noticks) ///
+		xlabel(1 "Less than HS" 3 ">= HS", noticks) xscale(range(0.5 3.8)) ///
 		ylabel(`min'(2)`max', nogrid) yscale(range(`minr' `max')) ///
 		graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white))  ///
 		plotregion(fcolor(white) lcolor(white)  ifcolor(white) ilcolor(white))  ///
 		scheme(s2mono) scale(1.7) yline(0, lpattern(dash) lcolor(black)) ///
-		text(`beta1_pos' 1.02  "{&beta} = `beta_takeup_1'%`stars_1'" `beta2_pos' 3.02  "{&beta} = `beta_takeup_2'%`stars_2'", place(ne) color(blue*.8) size(vsmall)) 
->>>>>>> Stashed changes
-		
+		text(`beta1_pos' 0.75  "{&beta} = `beta_takeup_1'%`stars_1'" `beta2_pos' 2.75  "{&beta} = `beta_takeup_2'%`stars_2'", place(ne) color(blue*.8) size(medsmall)) 
 
 	graph export "$results/fe_estimates_`depvar'_short-longterm_catincome.pdf", as(pdf) replace
 

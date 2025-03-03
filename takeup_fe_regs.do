@@ -78,7 +78,7 @@ predict min_u_34, residuals
 
 
 *Overall
-qui: reghdfe public_34 min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
+qui: reghdfe public_34 min_center_NM $controls, absorb(cohort#comuna_cod) vce(cluster comuna_cod)
 local beta_takeup = string(round(_b[min_center_NM]*100,.1),"%9.1f")
 local se_beta_takeup = string(round(_se[min_center_NM]*100,.1),"%9.1f")
 	local tstat = _b[min_center_NM] / _se[min_center_NM]
