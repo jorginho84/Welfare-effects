@@ -56,16 +56,17 @@ set seed 100
 use "$db/data_estimate", clear
 
 // global controls i.m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home
-global controls m_age m_college WAIS_t_num WAIS_t_vo f_home dum_young_siblings  /*PESO TALLA*/ controles dum_smoke dum_alc
+global controls m_age WAIS_t_num WAIS_t_vo f_home dum_young_siblings  /*PESO TALLA*/ controles dum_smoke dum_alc
 
 *----------------------*
 *---------PREP---------*
 *----------------------*
 
 
-// recode elegible_t02 (0 = 2) , gen(cat_income)
-recode d_work_t02 (0 = 1) (1 = 2) , gen(cat_income) //Low income = did not work 2 years before birth. 
-
+// Educational categories
+gen cat_educ = .
+replace cat_educ = 1 if m_educ == 1 
+replace cat_educ = 2 if m_educ == 2 | m_educ == 3 | m_educ == 4
 
 
 /*--------------------------------------------------------------------------------*/
@@ -76,8 +77,13 @@ recode d_work_t02 (0 = 1) (1 = 2) , gen(cat_income) //Low income = did not work 
 
 *By income
 forvalues x = 1/2{
+<<<<<<< Updated upstream
 	reghdfe public_34 min_center_NM $controls if cat_income == `x', absorb(cohort#comuna_cod) vce(robust)
 	local beta_takeup_`x' =  string(round(-_b[min_center_NM]*100,.01),"%9.2f")
+=======
+	reghdfe public_34 min_center_NM $controls if cat_educ == `x', absorb(cohort#comuna_cod) vce(robust)
+	local beta_takeup_`x' =  string(round(-_b[min_center_NM]*100,.001),"%9.3f")
+>>>>>>> Stashed changes
 	local ub_takeup_`x' = (-_b[min_center_NM] + _se[min_center_NM]*invnormal(0.975))*100
 	local lb_takeup_`x' = (-_b[min_center_NM] - _se[min_center_NM]*invnormal(0.975))*100	
 		local tstat = _b[min_center_NM] / _se[min_center_NM]
@@ -123,8 +129,13 @@ twoway (bar effects x, barwidth(1.4) color(black*.7) fintensity(.5)  lwidth(0.4)
 (scatter effects x, msymbol(circle) mcolor(black*.7) mfcolor(black*.7)) ///
 	(rcap ub lb x, lpattern(solid) lcolor(black*.7) ), ///
 	ytitle("Effect on take-up (in %)")  xtitle("") legend(off) ///
+<<<<<<< Updated upstream
 	xlabel(1 "Unemployed" 3 "Employed", noticks) xscale(range(0.5 4)) ///
 	ylabel(0(1)4, nogrid) yscale(range(0 .)) ///
+=======
+	xlabel(1 "Less than HS" 3 ">= HS", noticks) ///
+	ylabel(, nogrid)  ///
+>>>>>>> Stashed changes
 	graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white))  ///
 	plotregion(fcolor(white) lcolor(white)  ifcolor(white) ilcolor(white))  ///
 	scheme(s2mono) scale(1.9) yline(0, lpattern(dash) lcolor(black)) ///

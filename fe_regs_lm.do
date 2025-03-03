@@ -61,17 +61,7 @@ global controls m_age m_college WAIS_t_num WAIS_t_vo f_home dum_young_siblings  
 
 
 
-
-*----------------------*
-*---------PREP---------*
-*----------------------*
-
-*Below/above median of HH income at baseline
-// gen cat_income = .
-// replace cat_income = 1 if percentile_income_h <= 50
-// replace cat_income = 2 if percentile_income_h > 50 & percentile_income_h != .
-
-
+// Main loop of estimates
 
 foreach depvar in "wage_18" "hours_w_18" "d_work_18"{
 	
@@ -186,7 +176,7 @@ foreach depvar in "wage_18" "hours_w_18" "d_work_18"{
 
 *Names for table
 local x = 1
-foreach names in "Monthly earnings" "Hours worked" "Work (=1)" {
+foreach names in "Monthly earnings (2024 USD)" "Hours worked" "Work (=1)" {
 	local name_`x' = "`names'"
 	local x = `x' + 1
 	

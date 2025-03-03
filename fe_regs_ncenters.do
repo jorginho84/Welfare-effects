@@ -60,20 +60,11 @@ set seed 100
 use "$db/data_estimate", clear
 
 // Define control variables
-global controls i.m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home
-
-
-
-// Preparing variables
-
-drop battelle tvip
-egen battelle = rowmean(battelle_age3_z battelle_age4_z battelle_age5_z)
-egen tvip = rowmean(tvip_age3_z tvip_age4_z tvip_age5_z)
-
+global controls m_age m_college WAIS_t_num WAIS_t_vo f_home dum_young_siblings  /*PESO TALLA*/ controles dum_smoke dum_alc
 
 
 // Main loop of estimates
-foreach depvar in "public_34" "wage_18" "hours_w_18" "d_work_18" "battelle" "tvip"{
+foreach depvar in "public_34" "wage_18" "hours_w_18" "d_work_18" "battelle3" "tvip3"{
 	
 	qui: summarize `depvar'
 	local mean_`depvar' = string(round(r(mean),.001),"%9.3f")
@@ -154,11 +145,11 @@ file open itts using "$results/fe_estimates_Ncenters.tex", write replace
 
 	file write itts " \multicolumn{2}{l}{\textbf{C. Test scores} }  &                                &  &         \\" _n
 	file write itts " &  &                                &  &         \\" _n
-	file write itts " Batelle (\$N = `n_battelle' \$)    &  &         `mean_batelle'       &  &  `beta_battelle'`stars_battelle'       \\" _n
-	file write itts "     &  &         			       &  &  (`se_beta_battelle')      \\" _n
+	file write itts " Batelle (\$N = `n_battelle3' \$)    &  &         `mean_battelle3'       &  &  `beta_battelle3'`stars_battelle3'       \\" _n
+	file write itts "     &  &         			       &  &  (`se_beta_battelle3')      \\" _n
 	file write itts " &  &                                &  &         \\" _n
-	file write itts " TVIP (\$N = `n_tvip' \$)    &  &         `mean_tvip'       &  &  `beta_tvip'`stars_tvip'       \\" _n
-	file write itts "     &  &         			       &  &  (`se_beta_tvip')      \\" _n
+	file write itts " TVIP (\$N = `n_tvip3' \$)    &  &         `mean_tvip3'       &  &  `beta_tvip3'`stars_tvip3'       \\" _n
+	file write itts "     &  &         			       &  &  (`se_beta_tvip3')      \\" _n
 	
 	       
 	file write itts "\bottomrule" _n

@@ -59,13 +59,15 @@ set seed 100
 use "$db/data_estimate", clear
 
 // global controls i.m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home
-global controls m_age m_college WAIS_t_num WAIS_t_vo f_home dum_young_siblings  /*PESO TALLA*/ controles dum_smoke dum_alc
+global controls m_age WAIS_t_num WAIS_t_vo f_home dum_young_siblings  /*PESO TALLA*/ controles dum_smoke dum_alc
 
-*Work at baseline
-recode d_work_t02 (0 = 1) (1 = 2) , gen(cat_income) //Low income = did not work 2 years before birth. 
+// Educational categories
+gen cat_educ = .
+replace cat_educ = 1 if m_educ == 1 
+replace cat_educ = 2 if m_educ == 2 | m_educ == 3 | m_educ == 4
 
 
-forval c = 1/2{
+
 
 *Names for graphs
 local x = 1
@@ -78,30 +80,38 @@ foreach names in "Battelle" "TVIP"{
 local x = 1
 foreach depvar in "battelle" "tvip"{
 	preserve
+<<<<<<< Updated upstream
 	foreach age of numlist 3 6 {
 		reghdfe `depvar'`age' min_center_NM $controls if cat_income == `c', absorb(cohort#comuna_cod) vce(cluster comuna_cod)
 		local beta_takeup_`age' = string(round(-_b[min_center_NM]*100,.01),"%9.2f")
 		local ub_takeup_`age' = (-_b[min_center_NM] + _se[min_center_NM]*invnormal(0.975))*100
 		local lb_takeup_`age' = (-_b[min_center_NM] - _se[min_center_NM]*invnormal(0.975))*100
+=======
+	forvalues c=1/2 {
+		reghdfe `depvar'3 min_center_NM $controls if cat_educ == `c', absorb(cohort#comuna_cod) vce(cluster comuna_cod)
+		local beta_takeup_`c' = string(round(-_b[min_center_NM]*100,.001),"%9.3f")
+		local ub_takeup_`c' = (-_b[min_center_NM] + _se[min_center_NM]*invnormal(0.975))*100
+		local lb_takeup_`c' = (-_b[min_center_NM] - _se[min_center_NM]*invnormal(0.975))*100
+>>>>>>> Stashed changes
 		local tstat = _b[min_center_NM] / _se[min_center_NM]
-		local pval_`age' = 2*(1-normal(abs(`tstat')))
-	}			
+		local pval_`c' = 2*(1-normal(abs(`tstat')))
+	}	
 	
 	clear
 	set obs  3
 	gen effects = .
 	gen lb = .
 	gen ub = .
-	replace effects = `beta_takeup_3' if _n == 1
-	replace lb = `lb_takeup_3' if _n == 1
-	replace ub = `ub_takeup_3' if _n == 1
+	replace effects = `beta_takeup_1' if _n == 1
+	replace lb = `lb_takeup_1' if _n == 1
+	replace ub = `ub_takeup_1' if _n == 1
 
-	replace effects = `beta_takeup_6' if _n == 3
-	replace lb = `lb_takeup_6' if _n == 3
-	replace ub = `ub_takeup_6' if _n == 3
+	replace effects = `beta_takeup_2' if _n == 3
+	replace lb = `lb_takeup_2' if _n == 3
+	replace ub = `ub_takeup_2' if _n == 3
 	
 	*Valores mostrados en el graf:
-	foreach g in 3 6{
+	foreach g in 1 2{
 // 	local beta`g' = string(round(`beta_takeup_`g''*100,.001),"%9.3f")
 	
 	*di `pval'
@@ -120,8 +130,8 @@ foreach depvar in "battelle" "tvip"{
 	}
 	}
 	*Position of text
-	local beta3_pos = `beta_takeup_3' + .3
-	local beta6_pos = `beta_takeup_6' + .3
+	local beta1_pos = `beta_takeup_1' + .3
+	local beta2_pos = `beta_takeup_2' + .3
 	
 	if "`depvar'" == "battelle" {
 		local min = -4
@@ -140,20 +150,29 @@ foreach depvar in "battelle" "tvip"{
 	(scatter effects x, msymbol(circle) mcolor(black*.7) mfcolor(black*.7)) ///
 		(rcap ub lb x, lpattern(solid) lcolor(black*.7) ), ///
 		ytitle("Effect on `name_`x'' (in % of {&sigma})")  xtitle("") legend(off) ///
+<<<<<<< Updated upstream
 		xlabel(1 "Ages 3-5" 3 "Ages 6-11", noticks) xscale(range(0.5 3.8)) ///
 		ylabel(`min'(2)`max', nogrid) yscale(range(`minr' `max')) ///
 		graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white))  ///
 		plotregion(fcolor(white) lcolor(white)  ifcolor(white) ilcolor(white))  ///
 		scheme(s2mono) scale(1.9) yline(0, lpattern(dash) lcolor(black)) ///
 		text(`beta3_pos' 1  "{&beta}=`beta_takeup_3'%`stars_3'" `beta6_pos' 3  "{&beta}=`beta_takeup_6'%`stars_6'", place(ne) color(blue*.8) size(medsmall)) 
+=======
+		xlabel(1 "Less than HS" 3 ">= HS", noticks) ///
+		ylabel(`min'(2)`max', nogrid) yscale(range(`minr' `max')) ///
+		graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white))  ///
+		plotregion(fcolor(white) lcolor(white)  ifcolor(white) ilcolor(white))  ///
+		scheme(s2mono) scale(1.7) yline(0, lpattern(dash) lcolor(black)) ///
+		text(`beta1_pos' 1.02  "{&beta} = `beta_takeup_1'%`stars_1'" `beta2_pos' 3.02  "{&beta} = `beta_takeup_2'%`stars_2'", place(ne) color(blue*.8) size(vsmall)) 
+>>>>>>> Stashed changes
 		
 
-	graph export "$results/fe_estimates_`depvar'_short-longterm_catincome`c'.pdf", as(pdf) replace
+	graph export "$results/fe_estimates_`depvar'_short-longterm_catincome.pdf", as(pdf) replace
 
 	restore
 
 	local x = `x' + 1
 }
-}
+
 
 

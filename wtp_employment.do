@@ -32,13 +32,13 @@ set seed 100
 
 use "$db/data_estimate", clear
 
-global controls i.m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings f_home PESO TALLA controles dum_smoke dum_alc
+global controls m_age m_college WAIS_t_num WAIS_t_vo f_home dum_young_siblings  /*PESO TALLA*/ controles dum_smoke dum_alc
 
 // Recode d_work_t02 to create cat_income
 recode d_work_t02 (0 = 1) (1 = 2), gen(cat_income) /* Low income = did not work 2 years before birth */
 
 // Computing lifetime earnings
-local annual_e = 4565 /* from Bravo, Mukhopadhyay, and Todd. 2002 dollars */
+local annual_e = 4565 * 2.29434 /* from Bravo, Mukhopadhyay, and Todd. From 2002 to 2024 to dollars */
 local discount = 0.03
 
 local life_earnings = 0
@@ -54,14 +54,14 @@ global tau = 0.35 /* tax rate */
 global earnings = `life_earnings' /* lifetime earnings */
 global cog_earnings = 1.114/6.511 /* Contreras, Urzua, Rodriguez (2023) */
 global J_distance = 1 /* # of centers for a 1-km change in av distance */
-global delta_J = 59880/70 /* cost of additional center per child */
-global delta_N = 1654 /* Marginal cost of additional child */
+global delta_J = (55 * 37508.22)/943.58 /* cost of additional center per child */
+global delta_N = (194814/943.58)*12 /* Marginal cost of additional child */
 global J = 2061 /* baseline # of centers */
 global N = 30000 /* baseline number of children */
-global kms_hours = 1/40 /* hours saved (driving 40kms per hour) */
+global kms_hours = 2*24/60 /* hours saved (driving 40kms per hour) */
 
 // Bootstrap draws
-local draws = 500
+local draws = 10
 
 // Obtain cognitive factor
 factor tvip3 battelle3, factors(1)

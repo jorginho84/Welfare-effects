@@ -4,7 +4,7 @@ WTP and take up levels
 
 
 
-local user Jorge
+local user Jorge-server
 
 if "`user'" == "andres"{
 	cd 				"/Users/andres/Dropbox/jardines_elpi"
@@ -14,10 +14,9 @@ if "`user'" == "andres"{
  
 else if "`user'" == "Jorge-server"{
  
-  global db "/home/jrodriguez/childcare/data"
-  global codes "/home/jrodriguez/childcare/codes"
-  global km "/home/jrodriguez/childcare/data"
-  global results "/home/jrodriguez/childcare/results"          
+  global db "/home/jrodriguezo/childcare/data"
+  global codes "/home/jrodriguezo/childcare/codes"
+  global results "/home/jrodriguezo/childcare/results"         
 }
 
 else if "`user'" == "Jorge"{
@@ -42,56 +41,43 @@ set seed 100
 
 use "$db/data_estimate", clear
 
-global controls i.m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home
+global controls m_age m_college WAIS_t_num WAIS_t_vo f_home dum_young_siblings  /*PESO TALLA*/ controles dum_smoke dum_alc
 
-*Computing lifetime earnings.
-local annual_e = 4565 /*from Bravo, Mukhopadhyay, and Todd. 2002 dollars*/
+// Computing lifetime earnings
+local annual_e = 4565 * 2.29434 /* from Bravo, Mukhopadhyay, and Todd. From 2002 to 2024 to dollars */
 local discount = 0.03
 
 local life_earnings = 0
-forvalues y = 0/39 { /*40 years working*/
-	
-	local life_earnings = `life_earnings' + `annual_e'/(1+`discount')^`y'
-	
-	
-} 
+forvalues y = 0/39 { /* 40 years working */
+    local life_earnings = `life_earnings' + `annual_e'/(1+`discount')^`y'
+}
 
-*Life-time earnings
+// Display lifetime earnings
 di `life_earnings'
 
-/*--Fixed parameters--*/
-
-global tau = 0.35 /*tax rate*/
-global earnings = `life_earnings' /*lifetime earnings*/
-global cog_earnings = 1.114/6.511 /*Contreras, Urzua, Rodriguez (2023) */
-global J_distance = 1 /*# of centers for a 1-km change in av distance*/
-global delta_J = 59880/70 /*cost of additional center per child*/
-global delta_N = 1654 /*Marginal cost of additional child*/
-global J = 2061 /*baseline # of centers*/
-global N = 30000 /*baseline number of children*/
-global kms_hours = 2*(1.5/60) /*hours saved (driving 40kms per hour)*/
-
+// Fixed parameters
+global tau = 0.35 /* tax rate */
+global earnings = `life_earnings' /* lifetime earnings */
+global cog_earnings = 1.114/6.511 /* Contreras, Urzua, Rodriguez (2023) */
+global J_distance = 1 /* # of centers for a 1-km change in av distance */
+global delta_J = (55 * 37508.22)/943.58 /* cost of additional center per child. 55 UF * pesos_to_UF/exchange rate  */
+global delta_N = (194814/943.58)*12 /* Marginal cost of additional child. VTF transfer per year. In 2024 dollars*/
+global J = 2061 /* baseline # of centers */
+global N = 30000 /* baseline number of children */
+global kms_hours = 2*24/60 /* hours saved (walking 24 mins), round trip */
 
 
-*Bootstrap draws
-local draws = 20
+// Obtain cognitive factor
+factor tvip3 battelle3, factors(1)
+rotate, quartimin
+predict cog_factor_aux
+egen cog_factor = std(cog_factor_aux)
 
-*----------------------*
-*---------PREP---------*
-*----------------------*
-forvalues x = 7/8{
-	gen hwage_t`x' = wage_t`x'/(hours_w_t`x'*4.5) if wage_t`x' != 0 & hours_w_t`x' != 0
-
+// Hourly wage
+forvalues x = 7/8 {
+    gen hwage_t`x' = wage_t`x'/(hours_w_t`x'*4.5) if wage_t`x' != 0 & hours_w_t`x' != 0
 }
-
-foreach var in wage hours_w d_work hwage{
-	egen `var'_18=rowmean( `var'_t7 `var'_t8)
-	*gen `var'_18 = `var'_t7
-}
-
-
-
-egen TVIP = rowmean(TVIP_age_2 TVIP_age_3)
+egen hwage_18 = rowmean(hwage_t7 hwage_t8)
 
 
 
@@ -110,12 +96,12 @@ program benefits_cost, rclass
 	
 	
 	*MPRTE
-	qui: mtefe TVIP $controls i.comuna_cod i.cohort (public_34 = min_center_34), pol(2) trimsupport(0.01) noplot
+	qui: mtefe cog_factor $controls i.comuna_cod i.cohort (public_34 = min_center_NM), pol(2) trimsupport(0.01) noplot
 	mat M = e(b)
-	local mcol3 = colnumb(M,"mprte3")
+	local mcol3 = colnumb(M,"mprte1")
 	local mprte3_aux    = M[1,`mcol3']
 	local wtp_ch = `mprte3_aux'*$cog_earnings * $earnings * `takeup'
-	local wtp_p = `mean_wage_D1' * `mean_34' * $kms_hours * 5 * 52
+	local wtp_p = `mean_wage_D1' * `mean_34'  * 5 * 52 * $kms_hours
 	local wtp = `wtp_ch' + `wtp_p'
 	
 	return scalar wtp_ch = `wtp_ch'
@@ -130,9 +116,9 @@ program benefits_cost, rclass
 	qui: sum hwage_18 if hwage_18 != 0, meanonly
 	local mean_wage = r(mean)
 	
-	qui: mtefe hours_w_18 $controls i.comuna_cod i.cohort (public_34 = min_center_34), pol(2) trimsupport(0.01) noplot
+	qui: mtefe hours_w_18 $controls i.comuna_cod i.cohort (public_34 = min_center_NM), pol(2) trimsupport(0.01) noplot
 	mat M = e(b)
-	local mcol3 = colnumb(M,"mprte3")
+	local mcol3 = colnumb(M,"mprte1")
 	local mprte3_h    = M[1,`mcol3']
 	local rev_parents = `mean_wage' * `mprte3_h' * 52 * `takeup' * $tau /*assuming no effects from infra-marginal parents*/
 	local rev_children = `mprte3_aux' * $cog_earnings * $earnings * `takeup' * $tau

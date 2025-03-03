@@ -7,7 +7,7 @@ This do-file computes the descriptive stat table
 clear all
 set matsize 800
 
-local user Cec
+local user Jorge-server
 
 if "`user'" == "andres"{
 	cd 				"/Users/andres/Dropbox/jardines_elpi"
@@ -17,10 +17,9 @@ if "`user'" == "andres"{
  
 else if "`user'" == "Jorge-server"{
  
-  global db "/home/jrodriguez/childcare/data"
-  global codes "/home/jrodriguez/childcare/codes"
-  global km "/home/jrodriguez/childcare/data"
-  global results "/home/jrodriguez/childcare/results"          
+  global db "/home/jrodriguezo/childcare/data"
+  global codes "/home/jrodriguezo/childcare/codes"
+  global results "/home/jrodriguezo/childcare/results"             
 }
 
 else if "`user'" == "Jorge"{
@@ -135,7 +134,7 @@ file open stats using "$results/stat_table.tex", write replace
 	file write stats "BATTELLE (in \$ \sigma \$)      &  &        `mean_BATTELLE'        & &         `sd_BATTELLE'               \\" _n
 	file write stats "TVIP (in \$ \sigma \$)      &  &        `mean_TVIP'        & &         `sd_TVIP'               \\" _n
 // 	file write stats "CBCL (in \$ \sigma \$)      &  &        `mean_CBCL'        & &         `sd_CBCL'               \\" _n
-	file write stats "Earnings (monthly USD)      &  &           `mean_wage_18'                & &        `sd_wage_18'                 \\" _n
+	file write stats "Earnings (monthly 2024 USD)      &  &           `mean_wage_18'                & &        `sd_wage_18'                 \\" _n
 	file write stats "Hours worked (weekly)      &  &           `mean_hours_w_18'                & &        `sd_hours_w_18'                 \\" _n
 	file write stats "Employed      &  &            `mean_d_work_18'              & &         `sd_d_work_18'               \\" _n
 	file write stats "    &  &                      & &              \\" _n

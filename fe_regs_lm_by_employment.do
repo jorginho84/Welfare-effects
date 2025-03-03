@@ -1,6 +1,6 @@
 **** This dofile generates table of heterogeneous effects on mothers' labor market outcomes, by employment at baseline
 
-local user Jorge
+local user Jorge-server
 
 if "`user'" == "andres"{
 	cd 				"/Users/andres/Dropbox/jardines_elpi"
@@ -10,10 +10,9 @@ if "`user'" == "andres"{
  
 else if "`user'" == "Jorge-server"{
  
-  global db "/home/jrodriguez/childcare/data"
-  global codes "/home/jrodriguez/childcare/codes"
-  global km "/home/jrodriguez/childcare/data"
-  global results "/home/jrodriguez/childcare/results"          
+  global db "/home/jrodriguezo/childcare/data"
+  global codes "/home/jrodriguezo/childcare/codes"
+  global results "/home/jrodriguezo/childcare/results"             
 }
 
 else if "`user'" == "Jorge"{
@@ -53,15 +52,17 @@ set seed 100
 use "$db/data_estimate", clear
 
 // global controls i.m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home
-global controls m_age m_college WAIS_t_num WAIS_t_vo f_home dum_young_siblings  /*PESO TALLA*/ controles dum_smoke dum_alc
+global controls m_age WAIS_t_num WAIS_t_vo f_home dum_young_siblings  /*PESO TALLA*/ controles dum_smoke dum_alc
 
 *----------------------*
 *---------PREP---------*
 *----------------------*
 
 
-// recode elegible_t02 (0 = 2) , gen(cat_income)
-recode d_work_t02 (0 = 1) (1 = 2) , gen(cat_income) //Low income = did not work 2 years before birth. 
+// Educational categories
+gen cat_educ = .
+replace cat_educ = 1 if m_educ == 1 
+replace cat_educ = 2 if m_educ == 2 | m_educ == 3 | m_educ == 4
 
 
 **# Tabla que une cat_income 1 y 2
@@ -70,11 +71,11 @@ forval c = 1/2{
 
 foreach depvar in "wage_18" "hours_w_18" "d_work_18"{
 	
-	qui: summarize `depvar' if cat_income == `c'
+	qui: summarize `depvar' if cat_educ == `c'
 	local mean_`depvar'_`c' = string(round(r(mean),.001),"%9.3f")
 	
 	*4. Full FEx
-	 reghdfe `depvar' min_center_NM $controls if cat_income == `c', absorb(cohort#comuna_cod) vce(cluster comuna_cod)
+	 reghdfe `depvar' min_center_NM $controls if cat_educ == `c', absorb(cohort#comuna_cod) vce(cluster comuna_cod)
 	local n_`depvar'_`c' = string(e(N),"%42.0fc")
 	local beta_`depvar'_`c' = string(round(-_b[min_center_NM],.001),"%9.3f")
 	local se_beta_`depvar'_`c' = string(round(_se[min_center_NM],.001),"%9.3f")
@@ -117,7 +118,7 @@ foreach names in "Monthly earnings" "Hours worked" "Work (=1)" {
 file open itts using "$results/fe_estimates_lm_bycatincome.tex", write replace
 	file write itts "\begin{tabular}{lcccccc}" _n
 	file write itts "\toprule" _n
-	file write itts "             &  &\multicolumn{2}{c}{Unemployed at baseline}  &  & \multicolumn{2}{c}{Employed at baseline}                             \\" _n
+	file write itts "             &  &\multicolumn{2}{c}{Less than HS}  &  & \multicolumn{2}{c}{HS or more}                             \\" _n
 	file write itts "    \cmidrule{2-4}    \cmidrule{6-7}   " _n
 	file write itts "             &  & Baseline mean &  Estimated effect &  & Baseline mean &  Estimated effect                               \\" _n
 	file write itts "\midrule" _n

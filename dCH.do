@@ -16,12 +16,7 @@ global results "/home/jrodriguezo/childcare/results"
 
 use "$db/data_estimate", clear
 
-*Obtaining cognitive scores (short term)
-drop battelle tvip
-egen batelle = rowmean(battelle_age3_z battelle_age4_z battelle_age5_z)
-egen tvip = rowmean(tvip_age3_z tvip_age4_z tvip_age5_z)
-
-collapse (mean) N_centers1000_NM min_center_NM public_34 d_work_18 wage_18 hours_w_18 tvip batelle (count) N_households = min_center_NM (count) weight_n_batelle = batelle (count) weight_n_tvip = tvip, by(comuna_cod cohort)
+collapse (mean) N_centers1000_NM min_center_NM public_34 d_work_18 wage_18 hours_w_18 tvip3 battelle3 (count) N_households = min_center_NM (count) weight_n_batelle = battelle3 (count) weight_n_tvip = tvip3, by(comuna_cod cohort)
 sort comuna_cod cohort
 xtset comuna_cod cohort
 
@@ -35,6 +30,11 @@ replace treated_centers = 1 if N_centers1000_NM > 2
 replace treated_centers = 0 if N_centers1000_NM <= 2
 
 did_multiplegt_stat public_34 comuna_cod cohort treated_distance, weights(N_households) exact_match cluster(comuna_cod) placebo(1)
+
+did_multiplegt_stat d_work_18 comuna_cod cohort treated_distance, weights(N_households) exact_match cluster(comuna_cod) placebo(1)
+
+did_multiplegt_dyn public_34 comuna_cod cohort treated_distance, weights(N_households)
+
 
 *Estimates and plots
 foreach depvar in "public_34" "wage_18" "hours_w_18" "d_work_18" "tvip" "batelle"{
