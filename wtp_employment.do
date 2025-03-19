@@ -34,8 +34,10 @@ use "$db/data_estimate", clear
 
 global controls m_age m_college WAIS_t_num WAIS_t_vo f_home dum_young_siblings  /*PESO TALLA*/ controles dum_smoke dum_alc
 
-// Recode d_work_t02 to create cat_income
-recode d_work_t02 (0 = 1) (1 = 2), gen(cat_income) /* Low income = did not work 2 years before birth */
+// Mothers' education categories
+gen cat_educ = .
+replace cat_educ = 1 if m_educ == 1 
+replace cat_educ = 2 if m_educ == 2 | m_educ == 3 | m_educ == 4
 
 // Computing lifetime earnings
 local annual_e = 4565 * 2.29434 /* from Bravo, Mukhopadhyay, and Todd. From 2002 to 2024 to dollars */
@@ -137,7 +139,7 @@ save `data_aux_main', replace
 
 forvalues c = 1/2 {
 	use `data_aux_main', clear
-	keep if cat_income == `c'
+	keep if cat_educ == `c'
 	qui: benefits_cost
 	di r(wtp_ch)
 	di r(wtp_p)
@@ -254,7 +256,7 @@ forvalues c = 1/2 {
 		xlabel(`r(relabel)', labsize(vsmall)) ylabel(,nogrid) ylabel(0(2)20, nogrid axis(2)) ///
 		graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white)) plotregion(fcolor(white) lcolor(white) ifcolor(white) ilcolor(white)) ///
 		scheme(s2mono) xline(4, lpattern(dash) lcolor(black)) xline(9, lpattern(dash) lcolor(black))
-	graph export "$results/mvpf_employment`c'.pdf", as(pdf) replace
+	graph export "$results/mvpf_educ`c'.pdf", as(pdf) replace
 }
 
 
