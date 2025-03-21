@@ -794,6 +794,8 @@ recode cc_near67 		(2=0) (9=.)
 
 ren (en15a en15b) (type_center12345 type_center67) //e12 antigua
 
+rename (cl4e cl4f) (who_childcare6 who_childcare7)
+
 foreach v of varlist en11a* en11b* {
     recode `v' (99 = .)
 }
@@ -826,7 +828,7 @@ keep if h1==1|h1==2
 
 rename (o1 o10 y1) (work_aux hours_w_aux wage_aux)
 
-keep folio f_sch f_educ m_sch m_educ gender birth_weight dum_center12345 dum_center67 dum_work12345 dum_work67 cc_* dum_siblings tot_sib dum_young_siblings f_home dum_smoke dum_alc dum_sano dum_drug preg_control h1 m_age region idcomuna married n_integrantes fexp_enc0_2 fexp_eva0_2 fexp_hog0_2 time_center12345 time_center67 monthly_Y dum_work* work_aux hours_w_aux wage_aux espanel percentile_income_h type_center67 bday trab_aux elegible_p50
+keep folio f_sch f_educ m_sch m_educ gender birth_weight dum_center12345 dum_center67 dum_work12345 dum_work67 cc_* dum_siblings tot_sib dum_young_siblings f_home dum_smoke dum_alc dum_sano dum_drug preg_control h1 m_age region idcomuna married n_integrantes fexp_enc0_2 fexp_eva0_2 fexp_hog0_2 time_center12345 time_center67 monthly_Y dum_work* work_aux hours_w_aux wage_aux espanel percentile_income_h type_center67 bday trab_aux elegible_p50 who_childcare*
 
 recode work_aux (2 = 0) (8 = .)
 recode wage_aux (9 = .)
@@ -1731,6 +1733,42 @@ drop aux_public*
 // label var public_02 "Participation in public center at age 0-2"
 label var public_34 "Participation in public center at age 3-4"
 
+** Variable type_care = 1 JI público, 2 JI privado, 3 guardería (otro/vecino), 4 lo cuidan en la casa (cualquier familiar).
+forval t = 6/7{
+	gen type_care`t'_2010 = 1 if dum_center`t'_2010 == 1 & inlist(type_center`t'_2010,2,3,4)
+	replace type_care`t'_2010 = 2 if dum_center`t'_2010 == 1 & inlist(type_center`t'_2010,1,5)
+	replace type_care`t'_2010 = 3 if dum_center`t'_2010 == 0 & inlist(who_childcare`t'_2010,13,14) & type_care`t'_2010 == .
+	replace type_care`t'_2010 = 3 if dum_center`t'_2010 == 1 & inlist(type_center`t'_2010,6) //"otra"
+	replace type_care`t'_2010 = 4 if dum_center`t'_2010 == 0 & inlist(who_childcare`t'_2010,1,2,3,4,5,6,7,8,9,10,11,12) & type_care`t'_2010 == .
+	
+	gen type_care`t'_2012 = 1 if dum_center`t'_2012 == 1 & inlist(type_center`t'_2012,1,3,5,6)
+	replace type_care`t'_2012 = 2 if dum_center`t'_2012 == 1 & inlist(type_center`t'_2012,2,4,7,8)
+	replace type_care`t'_2012 = 3 if dum_center`t'_2012 == 0 & inlist(who_childcare`t'_2012,15,19)
+	replace type_care`t'_2012 = 3 if dum_center`t'_2012 == 1 & inlist(type_center`t'_2012,9) //Otra.
+	replace type_care`t'_2012 = 4 if dum_center`t'_2012 == 0 & inlist(who_childcare`t'_2012,1,2,3,4,5,6,7,8,9,10,11,12,13,14,18)
+}
+
+** who_childcare in 2017:
+gen who_childcare67_2017 = who_childcare7_2017
+replace who_childcare67_2017 = who_childcare6_2017 if who_childcare67_2017 == .
+
+	gen type_care67_2017 = 1 if dum_center67_2017 == 1 & inlist(type_center67_2017,1,3,5,6)
+	replace type_care67_2017 = 2 if dum_center67_2017 == 1 & inlist(type_center67_2017,2,4,7,8)
+	replace type_care67_2017 = 3 if dum_center67_2017 == 0 & inlist(who_childcare67_2017,11) 
+	replace type_care67_2017 = 3 if inlist(type_center67_2017,9) //"Otra dependencia"
+	replace type_care67_2017 = 4 if dum_center67_2017 == 0 & inlist(who_childcare67_2017,1,2,3,4,5,6,7,8,9,10,12) 
+	
+	
+	gen type_care67 = type_care67_2017
+	replace type_care67 = type_care7_2012 if type_care67 == .
+	replace type_care67 = type_care6_2012 if type_care67 == .
+	replace type_care67 = type_care7_2010 if type_care67 == .
+	replace type_care67 = type_care6_2010 if type_care67 == .
+
+	
+label def type_care 1 "JI Público" 2 "JI Privado" 3 "Guardería (cuidado informal)" 4 "Lo cuidan en la casa o un familiar", modify
+label val type_care67 type_care
+	
 *Imputar region
 gen region = region_2010 
 replace region = region_2012 if region==.
