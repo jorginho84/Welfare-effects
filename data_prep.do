@@ -1735,28 +1735,43 @@ label var public_34 "Participation in public center at age 3-4"
 
 ** Variable type_care = 1 JI público, 2 JI privado, 3 guardería (otro/vecino), 4 lo cuidan en la casa (cualquier familiar).
 forval t = 6/7{
-	gen type_care`t'_2010 = 1 if dum_center`t'_2010 == 1 & inlist(type_center`t'_2010,2,3,4)
-	replace type_care`t'_2010 = 2 if dum_center`t'_2010 == 1 & inlist(type_center`t'_2010,1,5)
-	replace type_care`t'_2010 = 3 if dum_center`t'_2010 == 0 & inlist(who_childcare`t'_2010,13,14) & type_care`t'_2010 == .
-	replace type_care`t'_2010 = 3 if dum_center`t'_2010 == 1 & inlist(type_center`t'_2010,6) //"otra"
-	replace type_care`t'_2010 = 4 if dum_center`t'_2010 == 0 & inlist(who_childcare`t'_2010,1,2,3,4,5,6,7,8,9,10,11,12) & type_care`t'_2010 == .
+	gen aux_type_care`t'_1 = (dum_center`t'_2010 == 1 & inlist(type_center`t'_2010,2,3,4) )
+	replace aux_type_care`t'_1 = 1 if (dum_center`t'_2012 == 1 & inlist(type_center`t'_2012,1,3,5,6)) & aux_type_care`t'_1 == .
 	
-	gen type_care`t'_2012 = 1 if dum_center`t'_2012 == 1 & inlist(type_center`t'_2012,1,3,5,6)
-	replace type_care`t'_2012 = 2 if dum_center`t'_2012 == 1 & inlist(type_center`t'_2012,2,4,7,8)
-	replace type_care`t'_2012 = 3 if dum_center`t'_2012 == 0 & inlist(who_childcare`t'_2012,15,19)
-	replace type_care`t'_2012 = 3 if dum_center`t'_2012 == 1 & inlist(type_center`t'_2012,9) //Otra.
-	replace type_care`t'_2012 = 4 if dum_center`t'_2012 == 0 & inlist(who_childcare`t'_2012,1,2,3,4,5,6,7,8,9,10,11,12,13,14,18)
+	gen aux_type_care`t'_2 = (dum_center`t'_2010 == 1 & inlist(type_center`t'_2010,1,5))
+	replace aux_type_care`t'_2 = 1 if dum_center`t'_2012 == 1 & inlist(type_center`t'_2012,2,4,7,8) & aux_type_care`t'_2 == .
+	
+	gen aux_type_care`t'_3 = (dum_center`t'_2010 == 0 & inlist(who_childcare`t'_2010,13,14))
+	replace aux_type_care`t'_3 = 1 if dum_center`t'_2010 == 1 & inlist(type_center`t'_2010,6) //"otra"
+	replace aux_type_care`t'_3 = 1 if dum_center`t'_2012 == 0 & inlist(who_childcare`t'_2012,15,19) 
+	replace aux_type_care`t'_3 = 1 if dum_center`t'_2012 == 1 & inlist(type_center`t'_2012,9) //Otra.
+	
+	
+	gen aux_type_care`t'_4 = (dum_center`t'_2010 == 0 & inlist(who_childcare`t'_2010,1,2,3,4,5,6,7,8,9,10,11,12) )
+	replace  aux_type_care`t'_4 = 1 if dum_center`t'_2012 == 0 & inlist(who_childcare`t'_2012,1,2,3,4,5,6,7,8,9,10,11,12,13,14,18) 
 }
 
 ** who_childcare in 2017:
 gen who_childcare67_2017 = who_childcare7_2017
 replace who_childcare67_2017 = who_childcare6_2017 if who_childcare67_2017 == .
 
-	gen type_care67_2017 = 1 if dum_center67_2017 == 1 & inlist(type_center67_2017,1,3,5,6)
-	replace type_care67_2017 = 2 if dum_center67_2017 == 1 & inlist(type_center67_2017,2,4,7,8)
-	replace type_care67_2017 = 3 if dum_center67_2017 == 0 & inlist(who_childcare67_2017,11) 
-	replace type_care67_2017 = 3 if inlist(type_center67_2017,9) //"Otra dependencia"
-	replace type_care67_2017 = 4 if dum_center67_2017 == 0 & inlist(who_childcare67_2017,1,2,3,4,5,6,7,8,9,10,12) 
+	gen aux_type_care67_2017_1 = (dum_center67_2017 == 1 & inlist(type_center67_2017,1,3,5,6))
+	gen aux_type_care67_2017_2 = (dum_center67_2017 == 1 & inlist(type_center67_2017,2,4,7,8))
+	gen aux_type_care67_2017_3 = (dum_center67_2017 == 0 & inlist(who_childcare67_2017,11)) 
+	replace aux_type_care67_2017_3 = 1 if inlist(type_center67_2017,9) //"Otra dependencia"
+	gen aux_type_care67_2017_4 = (dum_center67_2017 == 0 & inlist(who_childcare67_2017,1,2,3,4,5,6,7,8,9,10,12) )
+	
+	forval c = 1/4{
+		egen type_care67_`c' = rowtotal(aux_type_care6_`c' aux_type_care7_`c')
+		replace type_care67_`c' = . if aux_type_care6_`c' == . & aux_type_care7_`c' == .
+		replace type_care67_`c' = aux_type_care67_2017_`c' if type_care67_`c' == .
+		replace type_care67_`c' = 1 if type_care67_`c' >= 1 & type_care67_`c' != .
+	}
+	
+
+	
+	replace public_34=0 if d_cc_34==0
+	tab public_34, m
 	
 	
 	gen type_care67 = type_care67_2017
