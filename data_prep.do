@@ -1720,9 +1720,9 @@ replace aux_public_67_2017 = . if type_center67 == .
 // replace public_02=0 if d_cc_02==0 //0 sino asisten a ningun centro
 // tab public_02, m
 
-egen public_34=rowtotal(aux_public6 aux_public7)
-replace public_34=. if aux_public6==. & aux_public7==.
-replace public_34 = aux_public_67_2017 if public_34 == .
+egen public_34=rowtotal(aux_public6 aux_public7 aux_public_67_2017)
+replace public_34=. if aux_public6==. & aux_public7==. & aux_public_67_2017 == .
+// replace public_34 = aux_public_67_2017 if public_34 == .
 
 replace public_34=1 if public_34>=1 & public_34!=.
 replace public_34=0 if d_cc_34==0
@@ -1736,10 +1736,10 @@ label var public_34 "Participation in public center at age 3-4"
 ** Variable type_care = 1 JI público, 2 JI privado, 3 guardería (otro/vecino), 4 lo cuidan en la casa (cualquier familiar).
 forval t = 6/7{
 	gen aux_type_care`t'_1 = (dum_center`t'_2010 == 1 & inlist(type_center`t'_2010,2,3,4) )
-	replace aux_type_care`t'_1 = 1 if (dum_center`t'_2012 == 1 & inlist(type_center`t'_2012,1,3,5,6)) & aux_type_care`t'_1 == .
+	replace aux_type_care`t'_1 = 1 if (dum_center`t'_2012 == 1 & inlist(type_center`t'_2012,1,3,5,6))
 	
 	gen aux_type_care`t'_2 = (dum_center`t'_2010 == 1 & inlist(type_center`t'_2010,1,5))
-	replace aux_type_care`t'_2 = 1 if dum_center`t'_2012 == 1 & inlist(type_center`t'_2012,2,4,7,8) & aux_type_care`t'_2 == .
+	replace aux_type_care`t'_2 = 1 if dum_center`t'_2012 == 1 & inlist(type_center`t'_2012,2,4,7,8)
 	
 	gen aux_type_care`t'_3 = (dum_center`t'_2010 == 0 & inlist(who_childcare`t'_2010,13,14))
 	replace aux_type_care`t'_3 = 1 if dum_center`t'_2010 == 1 & inlist(type_center`t'_2010,6) //"otra"
@@ -1762,27 +1762,30 @@ replace who_childcare67_2017 = who_childcare6_2017 if who_childcare67_2017 == .
 	gen aux_type_care67_2017_4 = (dum_center67_2017 == 0 & inlist(who_childcare67_2017,1,2,3,4,5,6,7,8,9,10,12) )
 	
 	forval c = 1/4{
-		egen type_care67_`c' = rowtotal(aux_type_care6_`c' aux_type_care7_`c')
-		replace type_care67_`c' = . if aux_type_care6_`c' == . & aux_type_care7_`c' == .
-		replace type_care67_`c' = aux_type_care67_2017_`c' if type_care67_`c' == .
+		egen type_care67_`c' = rowtotal(aux_type_care6_`c' aux_type_care7_`c' aux_type_care67_2017_`c')
+		replace type_care67_`c' = . if aux_type_care6_`c' == . & aux_type_care7_`c' == . & aux_type_care67_2017_`c' == .
 		replace type_care67_`c' = 1 if type_care67_`c' >= 1 & type_care67_`c' != .
 	}
 	
-
+	replace type_care67_2 = 0 if type_care67_1 == 1
+	replace type_care67_3 = 0 if type_care67_1 == 1
+	replace type_care67_4 = 0 if type_care67_1 == 1
 	
-	replace public_34=0 if d_cc_34==0
-	tab public_34, m
+	replace type_care67_3 = 0 if type_care67_2 == 1
+	replace type_care67_4 = 0 if type_care67_2 == 1
 	
+	replace type_care67_4 = 0 if type_care67_3 == 1
 	
-	gen type_care67 = type_care67_2017
-	replace type_care67 = type_care7_2012 if type_care67 == .
-	replace type_care67 = type_care6_2012 if type_care67 == .
-	replace type_care67 = type_care7_2010 if type_care67 == .
-	replace type_care67 = type_care6_2010 if type_care67 == .
+	gen type_care34 = 1 if type_care67_1 == 1
+	replace type_care34 = 2 if type_care67_2 == 1
+	replace type_care34 = 3 if type_care67_3 == 1
+	replace type_care34 = 4 if type_care67_4 == 1
 
 	
 label def type_care 1 "JI Público" 2 "JI Privado" 3 "Guardería (cuidado informal)" 4 "Lo cuidan en la casa o un familiar", modify
-label val type_care67 type_care
+label val type_care34 type_care
+
+// drop aux_type_care* type_care67* 
 	
 *Imputar region
 gen region = region_2010 
@@ -2105,7 +2108,7 @@ drop final
 save "$db/data_estimate", replace
 
 
-
+tab type_care34 public_34, m
 
 
 
