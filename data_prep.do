@@ -987,8 +987,8 @@ forvalues t=1/7{
 	replace d_cc_t`t' = 0 if dum_center`t'_2010 == 0 // | dum_center`t'_2010 == 9
 
 	*search in 2012 if no history
-	replace d_cc_t`t' = 1 if dum_center`t'_2012 == 1 & (dum_center`t'_2010 == .)
-	replace d_cc_t`t' = 0 if dum_center`t'_2012 == 0 & (dum_center`t'_2010 == .)
+	replace d_cc_t`t' = 1 if dum_center`t'_2012 == 1 & inlist(d_cc_t`t',.)
+	replace d_cc_t`t' = 0 if dum_center`t'_2012 == 0 & (d_cc_t`t' == .)
 }
 
 *Two dummies for two age categories
@@ -1006,7 +1006,7 @@ replace d_cc_34=0 if d_cc_t6 == 0 | d_cc_t7 == 0
 replace d_cc_34=1 if d_cc_t6 == 1 | d_cc_t7 == 1
 // egen d_cc_02_34_2 = rowmax(d_cc_t6 d_cc_t7)
 
-replace d_cc_34=dum_center67_2017 if d_cc_34==.
+replace d_cc_34=dum_center67_2017 if d_cc_34==. /*| d_cc_34 == 0*/
 
 label var d_cc_02 "Child goes to cc center in ages 0 to 2"
 label var d_cc_34 "Child goes to cc center in ages 3 to 4"
@@ -1736,10 +1736,10 @@ label var public_34 "Participation in public center at age 3-4"
 ** Variable type_care = 1 JI público, 2 JI privado, 3 guardería (otro/vecino), 4 lo cuidan en la casa (cualquier familiar).
 forval t = 6/7{
 	gen aux_type_care`t'_1 = (dum_center`t'_2010 == 1 & inlist(type_center`t'_2010,2,3,4) )
-	replace aux_type_care`t'_1 = 1 if (dum_center`t'_2012 == 1 & inlist(type_center`t'_2012,1,3,5,6))
+	replace aux_type_care`t'_1 = 1 if (dum_center`t'_2012 == 1 & inlist(type_center`t'_2012,1,5,6))
 	
 	gen aux_type_care`t'_2 = (dum_center`t'_2010 == 1 & inlist(type_center`t'_2010,1,5))
-	replace aux_type_care`t'_2 = 1 if dum_center`t'_2012 == 1 & inlist(type_center`t'_2012,2,4,7,8)
+	replace aux_type_care`t'_2 = 1 if dum_center`t'_2012 == 1 & inlist(type_center`t'_2012,2,3,4,7,8)
 	
 	gen aux_type_care`t'_3 = (dum_center`t'_2010 == 0 & inlist(who_childcare`t'_2010,13,14))
 	replace aux_type_care`t'_3 = 1 if dum_center`t'_2010 == 1 & inlist(type_center`t'_2010,6) //"otra"
@@ -1766,6 +1766,9 @@ replace who_childcare67_2017 = who_childcare6_2017 if who_childcare67_2017 == .
 		replace type_care67_`c' = . if aux_type_care6_`c' == . & aux_type_care7_`c' == . & aux_type_care67_2017_`c' == .
 		replace type_care67_`c' = 1 if type_care67_`c' >= 1 & type_care67_`c' != .
 	}
+	
+	replace type_care67_1 = 0 if d_cc_34 == 0
+	replace type_care67_4 = 1 if d_cc_34 == 0
 	
 	replace type_care67_2 = 0 if type_care67_1 == 1
 	replace type_care67_3 = 0 if type_care67_1 == 1
@@ -2107,8 +2110,6 @@ drop final
 
 save "$db/data_estimate", replace
 
-
-tab type_care34 public_34, m
 
 
 
