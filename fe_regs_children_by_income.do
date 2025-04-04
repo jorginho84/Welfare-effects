@@ -97,7 +97,8 @@ foreach depvar in "battelle" "tvip"{
 	replace effects = `beta_takeup_1' if _n == 1
 	replace lb = `lb_takeup_1' if _n == 1
 	replace ub = `ub_takeup_1' if _n == 1
-
+// 	di "`lb_takeup_1' `ub_takeup_1'"
+	
 	replace effects = `beta_takeup_2' if _n == 3
 	replace lb = `lb_takeup_2' if _n == 3
 	replace ub = `ub_takeup_2' if _n == 3
@@ -126,14 +127,14 @@ foreach depvar in "battelle" "tvip"{
 	local beta2_pos = `beta_takeup_2' + .3
 	
 	if "`depvar'" == "battelle" {
-		local min = -4
+		local min = -2
 		local max = 6
-		local minr = -4
+		local minr = -1
 	}
 	else if "`depvar'" == "tvip" {
 		local min = -2
-		local max = 4
-		local minr = -3
+		local max = 6
+		local minr = -1
 	}
 	
 	egen x = seq()
@@ -147,7 +148,7 @@ foreach depvar in "battelle" "tvip"{
 		graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white))  ///
 		plotregion(fcolor(white) lcolor(white)  ifcolor(white) ilcolor(white))  ///
 		scheme(s2mono) scale(1.7) yline(0, lpattern(dash) lcolor(black)) ///
-		text(`beta1_pos' 0.75  "{&beta} = `beta_takeup_1'%`stars_1'" `beta2_pos' 2.75  "{&beta} = `beta_takeup_2'%`stars_2'", place(ne) color(blue*.8) size(medsmall)) 
+		text(`beta1_pos' 1  "{&beta} = `beta_takeup_1'%`stars_1'" `beta2_pos' 3  "{&beta} = `beta_takeup_2'%`stars_2'", place(ne) color(blue*.8) size(medsmall)) 
 
 	graph export "$results/fe_estimates_`depvar'_short-longterm_catincome.pdf", as(pdf) replace
 
