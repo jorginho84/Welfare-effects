@@ -52,6 +52,9 @@ forvalues y = 0/39 { /* 40 years working */
     local life_earnings = `life_earnings' + `annual_e'/(1+`discount')^`y'
 }
 
+// Discount back to 3 years of age (assuming individuals start working at 20)
+local life_earnings = `life_earnings' / (1 + `discount')^(17)
+
 // Display lifetime earnings
 di `life_earnings'
 
@@ -60,11 +63,13 @@ global tau = 0.35 /* tax rate */
 global earnings = `life_earnings' /* lifetime earnings */
 global cog_earnings = 1.114/6.511 /* Contreras, Urzua, Rodriguez (2023) */
 global J_distance = 1 /* # of centers for a 1-km change in av distance */
-global delta_J = (55 * 37508.22)/943.58 /* cost of additional center per child. 55 UF * pesos_to_UF/exchange rate  */
+global delta_J = (55 * 37508.22 * 8)/943.58 /* cost of additional center per child. 55 UF * pesos_to_UF/exchange rate  */
 global delta_N = (194814/943.58)*12 /* Marginal cost of additional child. VTF transfer per year. In 2024 dollars*/
 global J = 2061 /* baseline # of centers */
 global N = 30000 /* baseline number of children */
 global kms_hours = 2*24/60 /* hours saved (walking 24 mins), round trip */
+global depreciation = 0.05 /* depreciation rate */
+global cost_capital = 0.05 /* cost of capital */
 
 
 // Obtain cognitive factor
@@ -100,8 +105,8 @@ program benefits_cost, rclass
 	mat M = e(b)
 	local mcol3 = colnumb(M,"mprte1")
 	local mprte3_aux    = M[1,`mcol3']
-	local wtp_ch = `mprte3_aux'*$cog_earnings * $earnings * `takeup'
-	local wtp_p = `mean_wage_D1' * `mean_34'  * 5 * 52 * $kms_hours
+	local wtp_ch = `mprte3_aux'*$cog_earnings * $earnings * `takeup' 
+	local wtp_p = `mean_wage_D1' * `mean_34'  * 5 * 52 * $kms_hours 
 	local wtp = `wtp_ch' + `wtp_p'
 	
 	return scalar wtp_ch = `wtp_ch'
@@ -109,7 +114,7 @@ program benefits_cost, rclass
 	return scalar wtp = `wtp'
 	
 	*Costs
-	local prov_cost = ( $delta_J * $J_distance ) + ( $delta_N * `takeup')
+	local prov_cost = ($delta_J * $J_distance * ($depreciation + $cost_capital)) + ($delta_N * `takeup')
 	return scalar prov_cost = `prov_cost'
 	
 	
@@ -120,8 +125,8 @@ program benefits_cost, rclass
 	mat M = e(b)
 	local mcol3 = colnumb(M,"mprte1")
 	local mprte3_h    = M[1,`mcol3']
-	local rev_parents = `mean_wage' * `mprte3_h' * 52 * `takeup' * $tau /*assuming no effects from infra-marginal parents*/
-	local rev_children = `mprte3_aux' * $cog_earnings * $earnings * `takeup' * $tau
+	local rev_parents = `mean_wage' * `mprte3_h' * 52 * `takeup' * $tau  /*assuming no effects from infra-marginal parents*/
+	local rev_children = `mprte3_aux' * $cog_earnings * $earnings * `takeup' * $tau 
 	
 	return scalar rev_parents = `rev_parents'
 	return scalar rev_children = `rev_children'
@@ -132,6 +137,8 @@ program benefits_cost, rclass
 	*MVPF
 	local mvpf = `wtp'/`costs'
 	return scalar mvpf = `mvpf'
+
+	
 
 end
 

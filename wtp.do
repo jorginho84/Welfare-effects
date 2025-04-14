@@ -43,6 +43,9 @@ forvalues y = 0/39 { /* 40 years working */
     local life_earnings = `life_earnings' + `annual_e'/(1+`discount')^`y'
 }
 
+// Discount back to 3 years of age (assuming individuals start working at 20)
+local life_earnings = `life_earnings' / (1 + `discount')^(17)
+
 // Display lifetime earnings
 di `life_earnings'
 
@@ -51,11 +54,14 @@ global tau = 0.35 /* tax rate */
 global earnings = `life_earnings' /* lifetime earnings */
 global cog_earnings = 1.114/6.511 /* Contreras, Urzua, Rodriguez (2023) */
 global J_distance = 1 /* # of centers for a 1-km change in av distance */
-global delta_J = (55 * 37508.22)/943.58 /* cost of additional center per child. 55 UF * pesos_to_UF/exchange rate  */
+global delta_J = (55 * 37508.22 * 8.5)/943.58 /* cost of additional center per child. 55 UF * pesos_to_UF/exchange rate  */
 global delta_N = (194814/943.58)*12 /* Marginal cost of additional child. VTF transfer per year. In 2024 dollars*/
 global J = 2061 /* baseline # of centers */
 global N = 30000 /* baseline number of children */
 global kms_hours = 2*24/60 /* hours saved (walking 24 mins), round trip */
+global depreciation = 0.05 /* depreciation rate */
+global cost_capital = 0.05 /* cost of capital */
+
 
 // Bootstrap draws
 local draws = 500
@@ -98,7 +104,7 @@ program benefits_cost, rclass
     
     // WTPs for a one-hour reduction in distance
     local wtp_ch = `delta_cog' * $cog_earnings * $earnings 
-    local wtp_p = `mean_wage_D1' * `mean_34'  * 5 * 52 * $kms_hours
+    local wtp_p = `mean_wage_D1' * `mean_34'  * 5 * 52 * $kms_hours 
     local wtp = `wtp_ch' + `wtp_p'
     
     return scalar wtp_ch = `wtp_ch'
@@ -106,7 +112,7 @@ program benefits_cost, rclass
     return scalar wtp = `wtp'
     
     // Costs
-    local prov_cost = ($delta_J * $J_distance) + ($delta_N * `mean_takeup')
+    local prov_cost = ($delta_J * $J_distance * ($depreciation + $cost_capital)) + ($delta_N * `mean_takeup')
     return scalar prov_cost = `prov_cost'
     
     qui: sum hwage_18 if hwage_18 != 0, meanonly
@@ -115,7 +121,7 @@ program benefits_cost, rclass
     qui: reghdfe hours_w_18 min_center_34 $controls, absorb(cohort#comuna_cod) vce(robust)
     local delta_hours = -_b[min_center_34]
     local rev_parents = `delta_hours' * `mean_wage' * 52 * $tau  /* assuming no effects from infra-marginal parents */
-    local rev_children = `delta_cog' * $cog_earnings * $earnings * $tau 
+    local rev_children = `delta_cog' * $cog_earnings * $earnings * $tau
     
     return scalar rev_parents = `rev_parents'
     return scalar rev_children = `rev_children'
@@ -240,7 +246,7 @@ twoway (bar beta x, fcolor(sand) lcolor(sand)) ///
     (scatter beta_mvpf x, msymbol(circle) msize(small) mcolor(black) mfcolor(black) yaxis(2)) ///
     (rcap ub_mvpf lb_mvpf x, lpattern(solid) lcolor(black) yaxis(2)), ///
     ytitle("WTP and costs (dollars)") ytitle("MVPF (dollars)", axis(2)) xtitle("") legend(off) ///
-    xlabel(`r(relabel)', labsize(vsmall)) ylabel(,nogrid) ylabel(0(2)20, nogrid axis(2)) ///
+    xlabel(`r(relabel)', labsize(vsmall)) ylabel(,nogrid) ylabel(0(0.5)5, nogrid axis(2)) ///
     graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white)) plotregion(fcolor(white) lcolor(white) ifcolor(white) ilcolor(white)) ///
     scheme(s2mono) xline(4, lpattern(dash) lcolor(black)) xline(9, lpattern(dash) lcolor(black))
 graph export "$results/mvpf.pdf", as(pdf) replace
