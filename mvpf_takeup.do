@@ -84,7 +84,9 @@ forvalues x = 7/8 {
 }
 egen hwage_18 = rowmean(hwage_t7 hwage_t8)
 
-
+// Dummy for cohort x region
+egen cohort_region = group(cohort region)
+tab cohort_region, gen(cohort_region_fe)
 
 program benefits_cost, rclass
 	args takeup
@@ -101,7 +103,7 @@ program benefits_cost, rclass
 	
 	
 	*MPRTE
-	qui: mtefe cog_factor $controls i.comuna_cod i.cohort (public_34 = min_center_NM), pol(2) trimsupport(0.01) noplot
+	qui: mtefe cog_factor $controls i.comuna_cod i.cohort cohort_region_fe2-cohort_region_fe70 (public_34 = min_center_NM), pol(2) trimsupport(0.01) noplot
 	mat M = e(b)
 	local mcol3 = colnumb(M,"mprte1")
 	local mprte3_aux    = M[1,`mcol3']
@@ -117,15 +119,11 @@ program benefits_cost, rclass
 	local prov_cost = ($delta_J * $J_distance * ($depreciation + $cost_capital)) + ($delta_N * `takeup')
 	return scalar prov_cost = `prov_cost'
 	
-	
-	qui: sum hwage_18 if hwage_18 != 0, meanonly
-	local mean_wage = r(mean)
-	
-	qui: mtefe hours_w_18 $controls i.comuna_cod i.cohort (public_34 = min_center_NM), pol(2) trimsupport(0.01) noplot
+	qui: mtefe wage_18 $controls i.comuna_cod i.cohort cohort_region_fe2-cohort_region_fe70 (public_34 = min_center_NM), pol(2) trimsupport(0.01) noplot
 	mat M = e(b)
 	local mcol3 = colnumb(M,"mprte1")
 	local mprte3_h    = M[1,`mcol3']
-	local rev_parents = `mean_wage' * `mprte3_h' * 52 * `takeup' * $tau  /*assuming no effects from infra-marginal parents*/
+	local rev_parents = `mprte3_h' * 12 * `takeup' * $tau  /*assuming no effects from infra-marginal parents*/
 	local rev_children = `mprte3_aux' * $cog_earnings * $earnings * `takeup' * $tau 
 	
 	return scalar rev_parents = `rev_parents'

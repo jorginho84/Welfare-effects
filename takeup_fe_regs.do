@@ -57,7 +57,7 @@ set seed 100
 use "$db/data_estimate", clear
 
 // global controls i.m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home
-global controls m_age m_college WAIS_t_num WAIS_t_vo f_home dum_young_siblings  /*PESO TALLA*/ controles dum_smoke dum_alc	
+global controls m_age m_college WAIS_t_num WAIS_t_vo f_home dum_young_siblings  controles dum_smoke dum_alc	
 
 
 *----------------------*
@@ -79,8 +79,8 @@ predict min_u_34, residuals
 
 *Overall
 qui: reghdfe public_34 min_center_NM $controls, absorb(cohort#comuna_cod) vce(cluster comuna_cod)
-local beta_takeup = string(round(_b[min_center_NM]*100,.1),"%9.1f")
-local se_beta_takeup = string(round(_se[min_center_NM]*100,.1),"%9.1f")
+local beta_takeup = string(round(_b[min_center_NM]*100,.01),"%9.2f")
+local se_beta_takeup = string(round(_se[min_center_NM]*100,.01),"%9.2f")
 	local tstat = _b[min_center_NM] / _se[min_center_NM]
 
 	local pval = 2*(1-normal(abs(`tstat')))
@@ -115,7 +115,7 @@ twoway (histogram min_center_NM if min_center_NM <= `pctile', lwidth(medium) lco
 	 graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white)) ///
 	 plotregion(fcolor(white) lcolor(white)  ifcolor(white) ilcolor(white)) ///
 	 scheme(s2mono) scale(1.5) ///
-	 text(1.5 1.7  "Overall effect = `beta_takeup' pp" 1.37 2.12 "(S.E. = `se_beta_takeup')" , /*place(ne)*/ color(blue*.8) size(medsmall)) 
+	 text(1.52 1.7  "Overall effect = `beta_takeup' pp" 1.39 2.12 "(S.E. = `se_beta_takeup')" , /*place(ne)*/ color(blue*.8) size(medsmall)) 
 
 graph export "$results/take-up_fes.pdf", as(pdf) replace
 

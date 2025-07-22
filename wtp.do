@@ -32,7 +32,7 @@ set seed 100
 
 use "$db/data_estimate", clear
 
-global controls m_age m_college WAIS_t_num WAIS_t_vo f_home dum_young_siblings  /*PESO TALLA*/ controles dum_smoke dum_alc
+global controls m_age m_college WAIS_t_num WAIS_t_vo f_home dum_young_siblings controles dum_smoke dum_alc
 
 // Computing lifetime earnings
 local annual_e = 4565 * 2.29434 /* from Bravo, Mukhopadhyay, and Todd. From 2002 to 2024 to dollars */
@@ -83,7 +83,7 @@ program benefits_cost, rclass
     tempvar pz pcat min_center_34_neg
     
     // Take-up estimate
-    gen `min_center_34_neg' = -min_center_34
+    gen `min_center_34_neg' = -min_center_NM
     qui: logit public_34 `min_center_34_neg' $controls i.comuna_cod i.cohort
     qui: margins, dydx(`min_center_34_neg') gen(takeup)
     qui: sum takeup1, meanonly
@@ -99,8 +99,8 @@ program benefits_cost, rclass
     local mean_wage_D1 = r(mean)
     
     // Reduced form: effect on cognitive skills
-    qui: reghdfe cog_factor min_center_34 $controls, absorb(cohort#comuna_cod) vce(cluster comuna_cod)
-    local delta_cog = -_b[min_center_34]
+    qui: reghdfe cog_factor min_center_NM $controls, absorb(cohort#comuna_cod) vce(cluster comuna_cod)
+    local delta_cog = -_b[min_center_NM]
     
     // WTPs for a one-hour reduction in distance
     local wtp_ch = `delta_cog' * $cog_earnings * $earnings 
@@ -115,12 +115,9 @@ program benefits_cost, rclass
     local prov_cost = ($delta_J * $J_distance * ($depreciation + $cost_capital)) + ($delta_N * `mean_takeup')
     return scalar prov_cost = `prov_cost'
     
-    qui: sum hwage_18 if hwage_18 != 0, meanonly
-    local mean_wage = r(mean)
-    
-    qui: reghdfe hours_w_18 min_center_34 $controls, absorb(cohort#comuna_cod) vce(robust)
-    local delta_hours = -_b[min_center_34]
-    local rev_parents = `delta_hours' * `mean_wage' * 52 * $tau  /* assuming no effects from infra-marginal parents */
+    qui: reghdfe wage_18 min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
+    local delta_wage = -_b[min_center_NM]
+    local rev_parents = `delta_wage' * 12 * $tau  /* assuming no effects from infra-marginal parents */
     local rev_children = `delta_cog' * $cog_earnings * $earnings * $tau
     
     return scalar rev_parents = `rev_parents'
@@ -246,12 +243,14 @@ twoway (bar beta x, fcolor(sand) lcolor(sand)) ///
     (scatter beta_mvpf x, msymbol(circle) msize(small) mcolor(black) mfcolor(black) yaxis(2)) ///
     (rcap ub_mvpf lb_mvpf x, lpattern(solid) lcolor(black) yaxis(2)), ///
     ytitle("WTP and costs (dollars)") ytitle("MVPF (dollars)", axis(2)) xtitle("") legend(off) ///
-    xlabel(`r(relabel)', labsize(vsmall)) ylabel(,nogrid) ylabel(0(0.5)5, nogrid axis(2)) ///
+    xlabel(`r(relabel)', labsize(vsmall)) ylabel(,nogrid) ylabel(0(0.5)2, nogrid axis(2)) ///
     graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white)) plotregion(fcolor(white) lcolor(white) ifcolor(white) ilcolor(white)) ///
     scheme(s2mono) xline(4, lpattern(dash) lcolor(black)) xline(9, lpattern(dash) lcolor(black))
 graph export "$results/mvpf.pdf", as(pdf) replace
 
-
+// Export data to get numbers of each component
+list
+export delimited using "$results/mvpf_data.csv", replace
 
 
 
