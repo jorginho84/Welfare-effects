@@ -1,9 +1,10 @@
 /*
-This do-file checks the validity of identification assumption
+This do-file checks the validity of identification assumption. It compares the correlation of distance to measures of baseline covariates
+
 */
 
 
-local user Jorge
+local user Jorge-server
 
 if "`user'" == "andres"{
 	cd 				"/Users/andres/Dropbox/jardines_elpi"
@@ -13,10 +14,9 @@ if "`user'" == "andres"{
  
 else if "`user'" == "Jorge-server"{
  
-  global db "/home/jrodriguez/childcare/data"
-  global codes "/home/jrodriguez/childcare/codes"
-  global km "/home/jrodriguez/childcare/data"
-  global results "/home/jrodriguez/childcare/results"          
+  global db "/home/jrodriguezo/childcare/data"
+  global codes "/home/jrodriguezo/childcare/codes"
+  global results "/home/jrodriguezo/childcare/results"          
 }
 
 else if "`user'" == "Jorge"{
@@ -41,155 +41,48 @@ if "`c(username)'" == "Cecilia" {
 
 set more off
 program drop _all
-/*
-use "$db/data_estimate", clear
-
-global controls i.m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home
-
-*Father in college
-gen f_college = f_educ >= 4
-replace f_college = . if f_educ == .
-
-*Controles embarazo
-gen controles = q_control_2012 >= 7
-replace controles = . if q_control_2012 == .
-
-*Peso al nacer
-gen PESO = PESO_2010
-replace PESO = PESO_2012 if PESO == . 
-
-*Talla al nacer
-gen TALLA = TALLA_2010
-replace TALLA = TALLA_2012 if TALLA == . 
-
-program define corrs, rclass
-	tempvar pro_resid
-	
-	
-	qui: reghdfe min_center_34 $controls , absorb(cohort#comuna_cod) residuals(`pro_resid')
-		
-	foreach depvar in "f_college" "married" "dum_smoke" "dum_alc" "PESO" "TALLA"{
-		qui: corr `depvar' `pro_resid'
-		return scalar `depvar' = r(rho)
-		qui: corr `depvar' min_center_34
-		return scalar `depvar'_corr = r(rho)
-	
-	}
-	
-
-	
-end
-
-corrs
-di r(married_corr)
-di r(married)
-di r(f_college_corr)
-di r(f_college)
-
-
-
-
-
-bootstrap r(f_college_corr) r(married_corr) r(dum_smoke_corr) r(dum_alc_corr) r(PESO_corr) r(TALLA_corr) ///
- r(f_college) r(married) r(dum_smoke) r(dum_alc) r(PESO) r(TALLA), reps(500) seed(1234): corrs
-mat betas = e(b)
-mat betas_se = e(se)
-
-
-clear
-set obs 24
-	
-gen y = .
-gen coeff_corr = .	
-gen coeff = .	
-gen lb_corr = .
-gen ub_corr = .
-gen lb = .
-gen ub = .
-
-
-forval x=1/24{
-	replace y = -`x' if _n == `x'
-}
-
-
-forvalues x = 1/6{
-
-	replace coeff_corr = betas[1,`x'] if _n == 3*`x' + (`x' - 2)
-	replace lb_corr = betas[1,`x'] - betas_se[1,`x']*invnormal(0.975) if _n == 3*`x' + (`x' - 2)
-	replace ub_corr = betas[1,`x'] + betas_se[1,`x']*invnormal(0.975) if _n == 3*`x' + (`x' - 2)
-	
-	replace coeff = betas[1,`x' + 6] if _n == 3*`x' + (`x' - 1)
-	replace lb = betas[1,`x' + 6] - betas_se[1,`x' + 6]*invnormal(0.975) if _n == 3*`x' + (`x' - 1)
-	replace ub = betas[1,`x' + 6] + betas_se[1,`x' + 6]*invnormal(0.975) if _n == 3*`x' + (`x' - 1)
-		
-	
-
-	
-}
-
-
-twoway (scatter y coeff_corr, msymbol(circle)  mcolor(blue*.8) mfcolor(blue*.8)) ///
-  (rcap ub_corr lb_corr y, horizontal lpattern(solid) lcolor(blue*.8) ) ///
-  (scatter y coeff, msymbol(circle)  mcolor(sand*.8) mfcolor(sand*.8)) ///
-  (rcap ub lb y, horizontal lpattern(solid) lcolor(sand*.8) ), ///
- xtitle("Correlation")  ytitle("") legend(order(1 "No controls" 3 "Full controls"))  ///
- ylabel(-2.5 "Father college +" -6.5 "Married" -10.5 "Smoke during pregnancy" -14.5 "Alcohol during pregnancy" ///
- 	-18.5 "Weight at birth" -22.5 "Length at birth", angle(horizontal)) ///
- xlabel(-0.1(0.05)0.1)  ///
- graphregion(fcolor(white) ifcolor(white) lcolor(white) ilcolor(white)) ///
- plotregion(fcolor(white) lcolor(white)  ifcolor(white) ilcolor(white))  ///
- scheme(s2mono) ylabel(, nogrid) xline(0, lpattern(dash) lcolor(black)) scale(1.2)
- 
- 
-graph export "$results/validity.pdf", as(pdf) replace
-*/
-
-
-**# Versión 2 de la figura
-
-set more off
-program drop _all
 
 use "$db/data_estimate", clear
 
+// PCA index
+pca m_college WAIS_t_num WAIS_t_vo
+predict pca_index_aux if e(sample), score
+egen pca_index1 = std(pca_index_aux)
 
-global controls m_age m_college WAIS_t_num WAIS_t_vo f_home dum_young_siblings  /*PESO TALLA*/ controles dum_smoke dum_alc	
+// Collapsing at the comuna level
+collapse (mean) pca_index1 (median) min_center_NM, by(comuna_cod cohort)
+
+// Generating residualized PCA index
+qui: reghdfe pca_index1, absorb(cohort comuna_cod) residuals(pca_resid)
+
+// Figure
+twoway ///
+    (scatter pca_index1 min_center_NM if min_center_NM < 8,msymbol(oh) msize(medium) mcolor(blue*.4)) ///
+    (lfit pca_index1 min_center_NM if min_center_NM < 8, lcolor(blue*.7) lwidth(thick) lpattern(dash)) ///
+    (scatter pca_resid min_center_NM if min_center_NM < 8, msymbol(dh) msize(medium) mcolor(sand*.7)) ///
+    (lfit pca_resid min_center_NM if min_center_NM < 8, lcolor(sand*.9) lwidth(thick) lpattern(solid)), ///
+    legend(order(1 "Raw Index"  3 "Residualized Index") region(lstyle(none))) ///
+    ytitle("Covariate Index") ///
+    xtitle("Proximity") ///
+    plotregion(fcolor(white) color(white)) ///
+    graphregion(color(white))
 	
-// No lo sé hacer con programa. Ver si funciona y luego programar
-/*
-*Linea azul
-    tempvar pro_resid
-    qui: reghdfe public_34 min_center_34  , absorb(cohort#comuna_cod) residuals(`pro_resid')
-	
-foreach v in $controls {
-	qui: corr `v' `pro_resid'
-	scalar `v'_ = r(rho)
-}
+graph export "$results/pca_distance_two.pdf", as(pdf) replace	
 
-*Then, we observe corr between all minus `v'
 
-foreach v in $controls {
-    di "`v'"
-    global exclude "`v'"
-	global control_aux : list global(controls) - global(exclude)
-// 	di "$control_aux"
 
-	tempvar pro_resid
-    reghdfe public_34 min_center_34 $control_aux , absorb(cohort#comuna_cod) residuals(`pro_resid')
-	
-	qui: corr `v' `pro_resid'
-	scalar `v'_corr = r(rho)
-	drop `pro_resid'
-}
+stop!!
 
-*/	
-	
+
+// Individual and residualized correlations
+use "$db/data_estimate", clear
+global controls m_age m_college WAIS_t_num WAIS_t_vo f_home dum_young_siblings controles dum_smoke dum_alc
+
 ***Programa
 
 program define corrs, rclass
-*Now, with controls except the var of interest	
 
+*Now, with controls except the var of interest	
 foreach v in $controls {
     tempvar pro_resid1 pro_resid2
 //     di "`v'"

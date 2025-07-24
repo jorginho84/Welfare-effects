@@ -56,7 +56,6 @@ set seed 100
 
 use "$db/data_estimate", clear
 
-// global controls i.m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home
 global controls m_age m_college WAIS_t_num WAIS_t_vo f_home dum_young_siblings controles dum_smoke dum_alc
 
 
