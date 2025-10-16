@@ -1,15 +1,13 @@
 *Define user
 local user Jorge
 
-else if "`user'" == "Jorge"{
+if "`user'" == "Jorge"{
 	global dir "/Users/jorge-home/Dropbox/Research/DN-early/Dynamic_childcare"
 	global res "/Users/jorge-home/Dropbox/Research/DN-early/Dynamic_childcare/Results"
 	*	global str "C:\Users\Pablo\Desktop\EJES_2015"
     
 
 }
-
- 
 
 else if "`user'" == "Pablo"{
 	global dir "C:\Users\Pablo\Dropbox\Datos Jardines Chile"
@@ -18,12 +16,19 @@ else if "`user'" == "Pablo"{
 
 	if "`c(username)'" == "ccorrea"{
 	global dir		"G:\Mi unidad\Uandes\Jardines_elpi"
-	global db 		"$des/Data"
-	global results 	"$des/Tex/figures_tables"
+	global db 		"$dir/Data"
+	global results 	"$dir/Tex/figures_tables"
 	global codes 	"C:\Users\ccorrea\OneDrive - Universidad de los Andes\Documentos\GitHub\Welfare-effects"
 }
 
-	
+	if "`c(username)'" == "Cecilia"{
+	global dir		"G:\Mi unidad\Uandes\Jardines_elpi"
+	global db 		"$dir/Data"
+	global results 	"$dir/Tex/figures_tables"
+	global codes 	"C:\Users\Cecilia\Documents\GitHub\Welfare-effects"
+}
+
+*----------------------------------------------------------------------	
 
 	*1. Número de establecimientos
 	use "$dir/Data/establecimientos3.dta", clear	
@@ -52,52 +57,20 @@ else if "`user'" == "Pablo"{
 			graph export "$results/n_jardines.pdf", as(pdf) replace
 		   
 		restore
-stop!!
 		
-	*2. Número de matriculados en jardines JUNJI
-	use "$dir\Data\establecimientos3.dta", clear
-			 
-		*drop if dependencia==4 // sacamos los particulares pagados
-		keep if d_sj == 1
-			
-		gen mat_ji=mat_sc+mat_ms+mat_het
-		collapse (sum) d_sj mat_ji mat_sc mat_ms, by(year fuente)
-			
-		line mat_ji year if fuente == "JUNJI" & year>=2006 & year<=2014, lpattern(dash) ///
-		   lwidth(vthick) yti(Número de matriculados JUNJI) xti(Año) ///
-		   ti(Número de matriculados en jardines JUNJI) 
-
-		graph export "$res\Descriptive\mat_junji.pdf", as(pdf) replace
-
 		
-	*3. Número de cupos en jardines JUNJI
-	use "$dir\Data\establecimientos3.dta", clear
-			 
-		*drop if dependencia==4 // sacamos los particulares pagados
+		preserve
+		drop if dependencia==4 // sacamos los particulares pagados
 		keep if d_sj == 1
-			
-		gen cap_ji=cap_sc+cap_ms
-		collapse (sum) d_sj cap_ji cap_sc cap_ms , by(year fuente)
-			
-		line cap_ji year if fuente == "JUNJI" & year>=2006 & year<=2014, lpattern(dash) ///
-		   lwidth(vthick) yti(Número de cupos JUNJI) xti(Año) ///
-		   ti(Número de cupos en jardines JUNJI) 
 
-		graph export "$res\Descriptive\cup_junji.pdf", as(pdf) replace
-		
-	*4. Matrículas/cupos en jardines JUNJI
-	use "$dir\Data\establecimientos3.dta", clear
-			 
-		*drop if dependencia==4 // sacamos los particulares pagados
-		keep if d_sj == 1
-			
-		gen cap_ji=cap_sc+cap_ms
-		gen mat_ji=mat_sc+mat_ms+mat_het
-		collapse (sum) d_sj cap_ji cap_sc cap_ms mat_ji mat_sc mat_ms, by(year fuente)
-		gen double m_k_ji=mat_ji/cap_ji
-			
-		line m_k_ji year if fuente == "JUNJI" & year>=2006 & year<=2014, lpattern(dash) ///
-		   lwidth(vthick) yti(Matrículas/Cupos JUNJI) xti(Año) ///
-		   ti(Matrículas/Cupos en jardines JUNJI) 
+		gen dsj_1 = 1
+		gen dsj_2 = 1 if inlist(fuente,"MINEDUC","INTEGRA","JUNJI PRIV ")
+		gen dsj_3 = 1 if inlist(fuente,"MINEDUC","JUNJI PRIV ")
+		gen dsj_4 = 1 if inlist(fuente,"JUNJI PRIV ")
 
-		graph export "$res\Descriptive\m_k_junji.pdf", as(pdf) replace
+	collapse (sum) dsj_* , by(year)
+	keep if  year>=2006 & year<=2014
+	tw (area dsj_1 year, sort) (area dsj_2 year) (area dsj_3 year) (area dsj_4 year), legend(order(1 "JUNJI AD" 2 "INTEGRA" 3 "MINEDUC" 4 "JUNJI VTF" )) /*scheme(plotplainblind)*/ scheme(s2color) graphregion(fcolor(white))
+		graph export "$results/n_jardines_area.pdf", as(pdf) replace
+	
+		restore
