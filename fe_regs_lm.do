@@ -56,8 +56,7 @@ set seed 100
 
 use "$db/data_estimate", clear
 
-// global controls i.m_educ WAIS_t_num WAIS_t_vo m_age dum_young_siblings risk f_home
-global controls m_age m_college WAIS_t_num WAIS_t_vo f_home dum_young_siblings  /*PESO TALLA*/ controles dum_smoke dum_alc
+global controls m_age m_college WAIS_t_num WAIS_t_vo f_home dum_young_siblings controles dum_smoke dum_alc
 
 
 
@@ -144,7 +143,7 @@ foreach depvar in "wage_18" "hours_w_18" "d_work_18"{
 	local nreg = `nreg' + 1
 	
 	*4. Full FEx
-	 reghdfe `depvar' min_center_NM $controls, absorb(cohort#comuna_cod) vce(cluster comuna_cod)
+	reghdfe `depvar' min_center_NM $controls, absorb(cohort#comuna_cod) vce(cluster comuna_cod)
 	local n_`depvar'_`nreg' = string(e(N),"%42.0fc")
 	local beta_`depvar'_`nreg' = string(round(-_b[min_center_NM],.001),"%9.3f")
 	local se_beta_`depvar'_`nreg' = string(round(_se[min_center_NM],.001),"%9.3f")

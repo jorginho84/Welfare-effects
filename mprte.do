@@ -50,9 +50,13 @@ rotate, quartimin
 predict cog_factor_aux
 egen cog_factor = std(cog_factor_aux)
 
+// Dummy for cohort x region
+egen cohort_region = group(cohort region)
+tab cohort_region, gen(cohort_region_fe)
+
 // Main loop of estimates
 foreach depvar in "wage_18" "hours_w_18" "d_work_18" "cog_factor"{
-	qui: mtefe `depvar' $controls i.comuna_cod i.cohort  (public_34 = min_center_NM),  pol(2) trimsupport(0.01) first noplot
+	qui: mtefe `depvar' $controls i.comuna_cod i.cohort cohort_region_fe2-cohort_region_fe70 (public_34 = min_center_NM),  pol(2) trimsupport(0.01) first noplot
 	mat M=e(b)
 	mat V=e(V)
 
@@ -81,11 +85,10 @@ foreach depvar in "wage_18" "hours_w_18" "d_work_18" "cog_factor"{
 		}
 	
 	*First stage analysis
-	qui: reg public_34 min_center_NM $controls i.cohort i.comuna_cod if e(sample)
-	local fs_`depvar' = string(round((-1)* _b[min_center_NM] ,.01),"%9.3f")
-	qui: ivreg2 `depvar' (public_34=min_center_NM) $controls i.cohort i.comuna_cod if e(sample), robust
-	qui: weakivtest
-	local f_stat_`depvar' =  string(round(r(F_eff),.01),"%9.2f")
+	qui: reghdfe public_34  min_center_NM $controls if `depvar' != ., absorb(cohort#comuna_cod) vce(cluster comuna_cod)
+	local fs_`depvar' = string(round((-1)* _b[min_center_NM] ,.001),"%9.3f")
+	qui: ivreghdfe `depvar' (public_34=min_center_NM) $controls, vce(cluster comuna_cod) absorb(cohort#comuna_cod)
+	local f_stat_`depvar' =  string(round(e(rkf),.01),"%9.2f")
 }
 
 
