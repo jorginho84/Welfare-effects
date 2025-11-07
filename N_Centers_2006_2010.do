@@ -15,7 +15,7 @@ else if "`user'" == "Pablo"{
 }
 
 	if "`c(username)'" == "ccorrea"{
-	global dir		"G:\Mi unidad\Uandes\Jardines_elpi"
+	global dir		"C:\Users\ccorrea\Mi unidad\Uandes\Jardines_elpi"
 	global db 		"$dir/Data"
 	global results 	"$dir/Tex/figures_tables"
 	global codes 	"C:\Users\ccorrea\OneDrive - Universidad de los Andes\Documentos\GitHub\Welfare-effects"
@@ -69,8 +69,8 @@ else if "`user'" == "Pablo"{
 		gen dsj_4 = 1 if inlist(fuente,"JUNJI PRIV ")
 
 	collapse (sum) dsj_* , by(year)
-	keep if  year>=2006 & year<=2014
-	tw (area dsj_1 year, sort) (area dsj_2 year) (area dsj_3 year) (area dsj_4 year), legend(order(1 "JUNJI AD" 2 "INTEGRA" 3 "MINEDUC" 4 "JUNJI VTF" )) /*scheme(plotplainblind)*/ scheme(s2color) graphregion(fcolor(white))
+	keep if  year>=2005 & year<=2015
+	tw (area dsj_1 year, sort) (area dsj_2 year) (area dsj_3 year) (area dsj_4 year), legend(order(1 "JUNJI" 2 "INTEGRA" 3 "MINEDUC" 4 "JUNJI VTF" )) /*scheme(plotplainblind)*/ ytitle("Number of centers") xtitle("Year") xscale(range(2005 2015)) xlabel(2005(5)2015) scheme(s2color) graphregion(fcolor(white) lcolor(none) ifcolor(none) ilcolor(none)) plotregion(fcolor(none) lcolor(none) ifcolor(none)) ylabel(, nogrid)
 		graph export "$results/n_jardines_area.pdf", as(pdf) replace
 	
 		restore

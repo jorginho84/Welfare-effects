@@ -38,7 +38,7 @@ else if "`user'" == "Jorge"{
 }
 
 if "`c(username)'" == "ccorrea"{
-	global des		"G:\Mi unidad\Uandes\Jardines_elpi"
+	global des		"C:\Users\ccorrea\Mi unidad\Uandes\Jardines_elpi"
 	global db 		"$des/Data"
 // 	global results 	"$des/results"
 	global codes 	"C:\Users\ccorrea\OneDrive - Universidad de los Andes\Documentos\GitHub\Welfare-effects"
@@ -1344,7 +1344,7 @@ foreach m in 1000 5000{
 	drop N_centers`m'_y`x'*
 }
 }
-	drop dist_min_* 
+	*drop dist_min_* 
 
 
 ********************************************************************************
