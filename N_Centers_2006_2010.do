@@ -70,7 +70,7 @@ else if "`user'" == "Pablo"{
 
 	collapse (sum) dsj_* , by(year)
 	keep if  year>=2005 & year<=2015
-	tw (area dsj_1 year, sort) (area dsj_2 year) (area dsj_3 year) (area dsj_4 year), legend(order(1 "JUNJI" 2 "INTEGRA" 3 "MINEDUC" 4 "JUNJI VTF" )) /*scheme(plotplainblind)*/ ytitle("Number of centers") xtitle("Year") xscale(range(2005 2015)) xlabel(2005(5)2015) scheme(s2color) graphregion(fcolor(white) lcolor(none) ifcolor(none) ilcolor(none)) plotregion(fcolor(none) lcolor(none) ifcolor(none)) ylabel(, nogrid)
+	tw (area dsj_1 year, sort) (area dsj_2 year) (area dsj_3 year) (area dsj_4 year), legend(order(1 "JUNJI" 2 "INTEGRA" 3 "MINEDUC" 4 "JUNJI VTF" )) /*scheme(plotplainblind)*/ ytitle("Number of centers", size(large)) xtitle("Year", size(large)) xscale(range(2005 2015)) xlabel(2005(5)2015, labsize(large)) ylabel(,  labsize(large) angle(0)) scheme(s2color) graphregion(fcolor(white) lcolor(none) ifcolor(none) ilcolor(none)) plotregion(fcolor(none) lcolor(none) ifcolor(none)) ylabel(, nogrid)
 		graph export "$results/n_jardines_area.pdf", as(pdf) replace
 	
 		restore
