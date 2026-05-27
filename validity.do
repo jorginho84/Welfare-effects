@@ -52,6 +52,9 @@ egen pca_index1 = std(pca_index_aux)
 // Collapsing at the comuna level
 collapse (mean) pca_index1 (median) min_center_NM, by(comuna_cod cohort)
 
+xtset comuna_cod cohort
+gen delta_distance = min_center_NM - L.min_center_NM
+
 // Generating residualized PCA index
 qui: reghdfe pca_index1, absorb(cohort comuna_cod) residuals(pca_resid)
 
@@ -59,13 +62,13 @@ qui: reghdfe pca_index1, absorb(cohort comuna_cod) residuals(pca_resid)
 twoway ///
     (scatter pca_index1 min_center_NM if min_center_NM < 8,msymbol(oh) msize(medium) mcolor(blue*.4)) ///
     (lfit pca_index1 min_center_NM if min_center_NM < 8, lcolor(blue*.7) lwidth(thick) lpattern(dash)) ///
-    (scatter pca_resid min_center_NM if min_center_NM < 8, msymbol(dh) msize(medium) mcolor(sand*.7)) ///
+    (scatter pca_resid min_center_NM if min_center_NM < 8, msymbol(th) msize(medium) mcolor(sand*.7)) ///
     (lfit pca_resid min_center_NM if min_center_NM < 8, lcolor(sand*.9) lwidth(thick) lpattern(solid)), ///
     legend(order(1 "Raw Index"  3 "Residualized Index") region(lstyle(none))) ///
     ytitle("Covariate Index") ///
     xtitle("Proximity") ///
     plotregion(fcolor(white) color(white)) ///
-    graphregion(color(white))
+    graphregion(color(white)) scale(1.3)
 	
 graph export "$results/pca_distance_two.pdf", as(pdf) replace	
 
