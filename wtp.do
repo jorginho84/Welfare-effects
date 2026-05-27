@@ -97,14 +97,20 @@ program benefits_cost, rclass
     // Earnings
     qui: sum hwage_18 if public_34 == 1 & hwage_18 != 0, meanonly
     local mean_wage_D1 = r(mean)
+	
+	//Reduced-form: effect on parents' earnings
+	    qui: reghdfe wage_18 min_center_NM $controls, absorb(cohort#comuna_cod) vce(cluster comuna_cod)
+    local delta_wage = -_b[min_center_NM]
     
     // Reduced form: effect on cognitive skills
     qui: reghdfe cog_factor min_center_NM $controls, absorb(cohort#comuna_cod) vce(cluster comuna_cod)
     local delta_cog = -_b[min_center_NM]
     
     // WTPs for a one-hour reduction in distance
-    local wtp_ch = `delta_cog' * $cog_earnings * $earnings 
-    local wtp_p = `mean_wage_D1' * `mean_34'  * 5 * 52 * $kms_hours 
+    local wtp_ch = `delta_cog' * $cog_earnings * $earnings
+    local wtp_p_infra = `mean_wage_D1' * `mean_34'  * 5 * 52 * $kms_hours
+	local wtp_p_comp = `delta_wage'* 12 * (1-$tau)
+	local wtp_p = `wtp_p_infra' + `wtp_p_comp'
     local wtp = `wtp_ch' + `wtp_p'
     
     return scalar wtp_ch = `wtp_ch'
@@ -115,8 +121,6 @@ program benefits_cost, rclass
     local prov_cost = ($delta_J * $J_distance * ($depreciation + $cost_capital)) + ($delta_N * `mean_takeup')
     return scalar prov_cost = `prov_cost'
     
-    qui: reghdfe wage_18 min_center_NM $controls, absorb(cohort#comuna_cod) vce(robust)
-    local delta_wage = -_b[min_center_NM]
     local rev_parents = `delta_wage' * 12 * $tau  /* assuming no effects from infra-marginal parents */
     local rev_children = `delta_cog' * $cog_earnings * $earnings * $tau
     

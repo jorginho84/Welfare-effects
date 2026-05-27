@@ -101,14 +101,23 @@ program benefits_cost, rclass
 	qui: sum hwage_18 if public_34 == 1 & hwage_18 != 0, meanonly
 	local mean_wage_D1 = r(mean)
 	
+	*MPRTE on earnings
+		qui: mtefe wage_18 $controls i.comuna_cod i.cohort cohort_region_fe2-cohort_region_fe70 (public_34 = min_center_NM), pol(2) trimsupport(0.01) noplot
+	mat M = e(b)
+	local mcol3 = colnumb(M,"mprte1")
+	local mprte3_h    = M[1,`mcol3']
 	
-	*MPRTE
+	*MPRTE on cog skills
 	qui: mtefe cog_factor $controls i.comuna_cod i.cohort cohort_region_fe2-cohort_region_fe70 (public_34 = min_center_NM), pol(2) trimsupport(0.01) noplot
 	mat M = e(b)
 	local mcol3 = colnumb(M,"mprte1")
 	local mprte3_aux    = M[1,`mcol3']
+	
+	*WTPs
 	local wtp_ch = `mprte3_aux'*$cog_earnings * $earnings * `takeup' 
-	local wtp_p = `mean_wage_D1' * `mean_34'  * 5 * 52 * $kms_hours 
+	local wtp_p_infra = `mean_wage_D1' * `mean_34'  * 5 * 52 * $kms_hours 
+	local wtp_p_comp = `mprte3_h' * `takeup' * 12 * (1-$tau)
+	local wtp_p = `wtp_p_infra' + `wtp_p_comp'
 	local wtp = `wtp_ch' + `wtp_p'
 	
 	return scalar wtp_ch = `wtp_ch'
@@ -119,10 +128,7 @@ program benefits_cost, rclass
 	local prov_cost = ($delta_J * $J_distance * ($depreciation + $cost_capital)) + ($delta_N * `takeup')
 	return scalar prov_cost = `prov_cost'
 	
-	qui: mtefe wage_18 $controls i.comuna_cod i.cohort cohort_region_fe2-cohort_region_fe70 (public_34 = min_center_NM), pol(2) trimsupport(0.01) noplot
-	mat M = e(b)
-	local mcol3 = colnumb(M,"mprte1")
-	local mprte3_h    = M[1,`mcol3']
+
 	local rev_parents = `mprte3_h' * 12 * `takeup' * $tau  /*assuming no effects from infra-marginal parents*/
 	local rev_children = `mprte3_aux' * $cog_earnings * $earnings * `takeup' * $tau 
 	
